@@ -55,4 +55,4 @@ complete.traits <- traits %>%
                              site=="high_bench" ~ "high",
                              site=="high_10" ~ "high",
                              site=="high_9" ~ "high")) %>%
-  na.omit()
+  drop_na(distance_shrub)
