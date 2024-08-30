@@ -4,6 +4,9 @@
 if (!require("tidyr")) install.packages("tidyr"); library(tidyr)
 if (!require("dplyr")) install.packages("dplyr"); library(dplyr)
 if (!require("rstudioapi")) install.packages("rstudioapi"); library(rstudioapi)
+if (!require("ggplot2")) install.packages("ggplot2"); library(ggplot2)
+if (!require("lubridate")) install.packages("lubridate"); library(lubridate)
+
 
 # set working directory
 current_path <- getActiveDocumentContext()$path
@@ -19,10 +22,7 @@ seeds<-read.csv("./../raw_data/seeds.csv")
 weekly<-read.csv("./../raw_data/weekly.csv")
 soil.moisture<-read.csv("./../raw_data/soil_moisture.csv")
 
-# get germination rates
-weekly.germ<-weekly[-(which(is.na(weekly$germination))),2:8]
-germ<-distinct(weekly.germ)
-germ.rate<- germ %>% group_by(site,patch,subplot) %>% summarize(germ.rate=sum(germination)/n())
+#### GERMINATION AND FITNESS ####
 
 # get fecundity by species and site/patch/treat
 seeds<-seeds[-(grep("supp",seeds$Label)),]
@@ -35,6 +35,7 @@ seeds.sep3$subplot[is.na(seeds.sep3$subplot)]<-"C"
 seeds.sep<-separate(seeds.sep3,col="id",into=c("species","id"),sep="(?<=[A-Z])(?=\\s?[0-9])")
 seeds.sep$id[is.na(seeds.sep$id)]<-1
 
+# renaming variables
 seeds.sep$patch[seeds.sep$patch=="O"]<-"open"
 seeds.sep$patch[seeds.sep$patch=="S"]<-"shrub"
 seeds.sep$species[seeds.sep$species=="AD"]<-"ALDE"
@@ -47,11 +48,98 @@ seeds.sep$site[seeds.sep$site=="HN"]<-"high_north"
 seeds.sep$site[seeds.sep$site=="LG"]<-"low_gate"
 seeds.sep$site[seeds.sep$site=="LN"]<-"low_north"
 
+# get germination rates
+weekly.germ<-weekly[-(which(is.na(weekly$germination))),2:8]
+germ<-distinct(weekly.germ)
+germ.rate<- germ %>% group_by(species) %>% summarize(germ.rate=sum(germination)/n())
 
-fecundity<- seeds.sep %>% group_by(site,patch,subplot) %>% summarize(fecundity=sum(seed_number))
-fitness<-left_join(germ.rate,fecundity,by=c("site","patch","subplot"))
-fitness$fecundity[which(is.na(fitness$fecundity))]<-0
-fitness <- fitness %>% mutate(fitness=fecundity*germ.rate)
+# calculate fitness
+fecundity<-seeds.sep[seeds.sep$seed_number>0,]
+fitness<-left_join(fecundity,germ.rate,by="species")
+fitness<-fitness %>% mutate(fitness=seed_number*germ.rate)
+
+# summarizing for plots
+fitness.treat <- fitness %>% group_by(subplot) %>% summarize(fit.mean=mean(fitness),fit.se=(sd(fitness)/sqrt(n())))
+fitness.patch <- fitness %>% group_by(patch) %>% summarize(fit.mean=mean(fitness),fit.se=(sd(fitness)/sqrt(n())))
+
+# plots
+ggplot(fitness.treat,aes(x=subplot,y=fit.mean))+
+  geom_pointrange(aes(ymin = (fit.mean-fit.se),ymax=(fit.mean+fit.se)))+
+  labs(x="Competition treatment",y="Fitness")+
+  theme_classic()+
+  scale_x_discrete(limits=c("C","R"),labels=c("competition","removal"))
+ggplot(fitness.patch,aes(x=patch,y=fit.mean))+
+  geom_pointrange(aes(ymin = (fit.mean-fit.se),ymax=(fit.mean+fit.se)))+
+  theme_classic()+
+  labs(x="Patch",y="Fitness")
+
+#### NEIGHBORHOOD ####
+
+# reading in neighborhood data and formatting
+nb <- read.csv("./../raw_data/neighborhood.csv")
+nb$patch[nb$patch=="O"]<-"open"
+nb$patch[nb$patch=="S"]<-"shrub"
+
+# summarizing and merging with fitness data
+nb.sum <- nb %>% group_by(site,shrub,patch,species,id) %>% summarize(nb.abund=n())
+nb.sum$shrub<-as.character(nb.sum$shrub)
+nb.sum$id<-as.character(nb.sum$id)
+nb.sum$subplot<-rep("C",nrow(nb.sum))
+fitness.nb <- left_join(fitness,nb.sum)
+
+# plotting
+ggplot(na.omit(fitness.nb),aes(x=nb.abund,y=fitness,color=patch))+
+  geom_point(size=4)+
+  labs(x="Neighbor abundance",y="Fitness",color="Patch")+
+  theme_classic()
+
+#### TRAITS ####
+
+## Phenology ##
+
+# basic formatting
+weekly.pheno <- weekly[-(which(is.na(weekly$germination))),c(1:8,10)]
+weekly.pheno$phenophase[weekly.pheno$germination==1 & is.na(weekly.pheno$phenophase)]<-1
+weekly.pheno<-na.omit(weekly.pheno)
+weekly.pheno$date<-isoweek(as.Date(weekly.pheno$date,format = "%m/%d/%Y"))
+
+# setting up to plot by subplot/competition treatment
+pheno.treat <- weekly.pheno %>% group_by(date,subplot,phenophase) %>% summarize(abundance=n())
+flower.treat <- pheno.treat[pheno.treat$phenophase==3,]
+emerg.treat <- pheno.treat[pheno.treat$phenophase==1,]
+senes.treat <- pheno.treat[pheno.treat$phenophase==4,]
+
+# setting up to plot by patch
+pheno.patch <- weekly.pheno %>% group_by(date,patch,phenophase) %>% summarize(abundance=n())
+flower.patch <- pheno.patch[pheno.patch$phenophase==3,]
+emerg.patch <- pheno.patch[pheno.patch$phenophase==1,]
+senes.patch <- pheno.patch[pheno.patch$phenophase==4,]
+
+# plotting subplot/competition treatment
+ggplot(emerg.treat,aes(x=date,y=abundance,color=as.factor(subplot)))+
+  geom_point()+
+  geom_line()
+ggplot(flower.treat,aes(x=date,y=abundance,color=as.factor(subplot)))+
+  geom_point()+
+  geom_line()
+ggplot(senes.treat,aes(x=date,y=abundance,color=as.factor(subplot)))+
+  geom_point()+
+  geom_line()
+
+# plotting patch
+ggplot(emerg.patch,aes(x=date,y=abundance,color=as.factor(patch)))+
+  geom_point()+
+  geom_line()
+ggplot(flower.patch,aes(x=date,y=abundance,color=as.factor(patch)))+
+  geom_point()+
+  geom_line()
+ggplot(senes.patch,aes(x=date,y=abundance,color=as.factor(patch)))+
+  geom_point()+
+  geom_line()
+
+## Root traits
+
+#### OLD ####
 
 # creating separate trait data frames
 leaf.traits<- traits %>% 
