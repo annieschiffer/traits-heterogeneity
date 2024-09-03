@@ -13,7 +13,6 @@ current_path <- getActiveDocumentContext()$path
 setwd(dirname(current_path)) # set working directory to location of this file
 
 # import data
-<<<<<<< HEAD
 traits23<-("./../raw_data/annual_traits")
 above.mass<-("./../raw_data/aboveground_mass")
 root.SA<-("./../raw_data/root_SA")
@@ -54,141 +53,12 @@ for(ifile in 1:length(files)){
   
   write.csv(d,paste0(files[ifile],"_clean.csv"))
 }
-=======
-traits23<-read.csv("./../raw_data/annual_traits.csv")
-above.mass<-read.csv("./../raw_data/aboveground_mass.csv")
-root.SA<-read.csv("./../raw_data/root_SA.csv")
-root.mass<-read.csv("./../raw_data/root_mass.csv")
+
 supp.height<-read.csv("./../raw_data/supp_height.csv")
-seeds<-read.csv("./../raw_data/seeds.csv")
-weekly<-read.csv("./../raw_data/weekly.csv")
-soil.moisture<-read.csv("./../raw_data/soil_moisture.csv")
-
-#### GERMINATION AND FITNESS ####
-
-# get fecundity by species and site/patch/treat
-seeds<-seeds[-(grep("supp",seeds$Label)),]
-seeds.sep1<-separate(seeds,col="Label",into=c("site","treat","id"),sep="-")
-seeds.sep1$treat<-gsub("supp","",seeds.sep1$treat)
-seeds.sep2<-separate(seeds.sep1,col="treat",into = c("shrub","subplot"),sep = "(?<=[0-9])(?=\\s?[A-Z])")
-seeds.sep3<-separate(seeds.sep2,col="subplot",into=c("patch","subplot"),sep="(?<=[A-Z])(?=\\s?[A-Z])")
-#seeds.sep3$subplot[is.na(seeds.sep3$subplot)]<-"supp"
-seeds.sep3$subplot[is.na(seeds.sep3$subplot)]<-"C"
-seeds.sep<-separate(seeds.sep3,col="id",into=c("species","id"),sep="(?<=[A-Z])(?=\\s?[0-9])")
-seeds.sep$id[is.na(seeds.sep$id)]<-1
-
-# renaming variables
-seeds.sep$patch[seeds.sep$patch=="O"]<-"open"
-seeds.sep$patch[seeds.sep$patch=="S"]<-"shrub"
-seeds.sep$species[seeds.sep$species=="AD"]<-"ALDE"
-seeds.sep$species[seeds.sep$species=="BT"]<-"BRTE"
-seeds.sep$species[seeds.sep$species=="CP"]<-"COPA"
-seeds.sep$species[seeds.sep$species=="PD"]<-"PODO"
-seeds.sep$site[seeds.sep$site=="HE"]<-"high_east"
-seeds.sep$site[seeds.sep$site=="HG"]<-"high_gate"
-seeds.sep$site[seeds.sep$site=="HN"]<-"high_north"
-seeds.sep$site[seeds.sep$site=="LG"]<-"low_gate"
-seeds.sep$site[seeds.sep$site=="LN"]<-"low_north"
-
-# get germination rates
-weekly.germ<-weekly[-(which(is.na(weekly$germination))),2:8]
-germ<-distinct(weekly.germ)
-germ.rate<- germ %>% group_by(patch) %>% summarize(germ.rate=sum(germination)/n())
-
-# calculate fitness
-fecundity<-seeds.sep[seeds.sep$seed_number>0,]
-fitness<-left_join(fecundity,germ.rate,by="species")
-fitness<-fitness %>% mutate(fitness=seed_number*germ.rate)
-
-# summarizing for plots
-fitness.treat <- fitness %>% group_by(subplot) %>% summarize(fit.mean=mean(fitness),fit.se=(sd(fitness)/sqrt(n())))
-fitness.patch <- fitness %>% group_by(patch) %>% summarize(fit.mean=mean(fitness),fit.se=(sd(fitness)/sqrt(n())))
-
-# plots
-ggplot(fitness.treat,aes(x=subplot,y=fit.mean))+
-  geom_pointrange(aes(ymin = (fit.mean-fit.se),ymax=(fit.mean+fit.se)))+
-  labs(x="Competition treatment",y="Fitness")+
-  theme_classic()+
-  scale_x_discrete(limits=c("C","R"),labels=c("competition","removal"))
-ggplot(fitness.patch,aes(x=patch,y=fit.mean))+
-  geom_pointrange(aes(ymin = (fit.mean-fit.se),ymax=(fit.mean+fit.se)))+
-  theme_classic()+
-  labs(x="Patch",y="Fitness")
-
-#### NEIGHBORHOOD ####
-
-# reading in neighborhood data and formatting
-nb <- read.csv("./../raw_data/neighborhood.csv")
-nb$patch[nb$patch=="O"]<-"open"
-nb$patch[nb$patch=="S"]<-"shrub"
-
-# summarizing and merging with fitness data
-nb.sum <- nb %>% group_by(site,shrub,patch,species,id) %>% summarize(nb.abund=n())
-nb.sum$shrub<-as.character(nb.sum$shrub)
-nb.sum$id<-as.character(nb.sum$id)
-nb.sum$subplot<-rep("C",nrow(nb.sum))
-fitness.nb <- left_join(fitness,nb.sum)
-
-# plotting
-ggplot(na.omit(fitness.nb),aes(x=nb.abund,y=fitness,color=patch))+
-  geom_point(size=4)+
-  labs(x="Neighbor abundance",y="Fitness",color="Patch")+
-  theme_classic()
-
-#### TRAITS ####
-
-## Phenology ##
-
-# basic formatting
-weekly.pheno <- weekly[-(which(is.na(weekly$germination))),c(1:8,10)]
-weekly.pheno$phenophase[weekly.pheno$germination==1 & is.na(weekly.pheno$phenophase)]<-1
-weekly.pheno<-na.omit(weekly.pheno)
-weekly.pheno$date<-isoweek(as.Date(weekly.pheno$date,format = "%m/%d/%Y"))
-
-# setting up to plot by subplot/competition treatment
-pheno.treat <- weekly.pheno %>% group_by(date,subplot,phenophase) %>% summarize(abundance=n())
-flower.treat <- pheno.treat[pheno.treat$phenophase==3,]
-emerg.treat <- pheno.treat[pheno.treat$phenophase==1,]
-senes.treat <- pheno.treat[pheno.treat$phenophase==4,]
-
-# setting up to plot by patch
-pheno.patch <- weekly.pheno %>% group_by(date,patch,phenophase) %>% summarize(abundance=n())
-flower.patch <- pheno.patch[pheno.patch$phenophase==3,]
-emerg.patch <- pheno.patch[pheno.patch$phenophase==1,]
-senes.patch <- pheno.patch[pheno.patch$phenophase==4,]
-
-# plotting subplot/competition treatment
-ggplot(emerg.treat,aes(x=date,y=abundance,color=as.factor(subplot)))+
-  geom_point()+
-  geom_line()+
-  labs(x="Week",y="Number in vegetation phenophase",color="Competition")
-ggplot(flower.treat,aes(x=date,y=abundance,color=as.factor(subplot)))+
-  geom_point()+
-  geom_line()+
-  labs(x="Week",y="Number in flowering phenophase",color="Competition")
-ggplot(senes.treat,aes(x=date,y=abundance,color=as.factor(subplot)))+
-  geom_point()+
-  geom_line()+
-  labs(x="Week",y="Number in senescence phenophase",color="Competition")
-
-# plotting patch
-ggplot(emerg.patch,aes(x=date,y=abundance,color=as.factor(patch)))+
-  geom_point()+
-  geom_line()+
-  labs(x="Week",y="Number in vegetation phenophase",color="Patch")
-ggplot(flower.patch,aes(x=date,y=abundance,color=as.factor(patch)))+
-  geom_point()+
-  geom_line()+
-  labs(x="Week",y="Number in flowering phenophase",color="Patch")
-ggplot(senes.patch,aes(x=date,y=abundance,color=as.factor(patch)))+
-  geom_point()+
-  geom_line()+
-  labs(x="Week",y="Number in senescence phenophase",color="Patch")
-
-## Root traits
-
->>>>>>> f8da5f6df118809a0bcfb145b102d1743ac9fbc2
-
+supp.height$patch[supp.height$patch=="O"]<-"open"
+supp.height$patch[supp.height$patch=="S"]<-"shrub"
+supp.height<-rename(supp.height,max_height_cm=max_height..cm.)
+write.csv(supp.height,"./../raw_data/supp_height_clean.csv")
 
 #### OLD ####
 

@@ -20,13 +20,13 @@ root.SA<-read.csv("./../raw_data/root_SA_clean.csv")
 root.mass<-read.csv("./../raw_data/root_mass_clean.csv")
 supp.height<-read.csv("./../raw_data/supp_height_clean.csv")
 seeds<-read.csv("./../raw_data/seeds_clean.csv")
-weekly<-read.csv("./../raw_data/weekly_clean.csv")
-soil.moisture<-read.csv("./../raw_data/soil_moisture_clean.csv")
+weekly<-read.csv("./../raw_data/weekly.csv")
+soil.moisture<-read.csv("./../raw_data/soil_moisture.csv")
 
 #### GERMINATION AND FITNESS ####
 
 # get fecundity by species and site/patch/treat
-seeds<-seeds[-(grep("supp",seeds$Label)),]
+seeds<-seeds[-(grep("supp",seeds$subplot)),]
 
 # get germination rates
 weekly.germ<-weekly[-(which(is.na(weekly$germination))),2:8]
@@ -76,19 +76,26 @@ nb <- read.csv("./../raw_data/neighborhood.csv")
 nb$patch[nb$patch=="O"]<-"open"
 nb$patch[nb$patch=="S"]<-"shrub"
 
-# summarizing and merging with fitness data
-nb.sum <- nb %>% group_by(site,shrub,patch,species,id) %>% summarize(nb.abund=n())
-nb.sum$shrub<-as.character(nb.sum$shrub)
-nb.sum$id<-as.character(nb.sum$id)
-nb.sum$subplot<-rep("C",nrow(nb.sum))
-fitness.nb <- left_join(fitness,nb.sum)
+# summarizing neighbor abundance and merging with fitness data
+nb.abund <- nb %>% group_by(site,shrub,patch,species,id) %>% summarize(nb.abund=n())
+nb.abund$subplot<-rep("C",nrow(nb.abund))
+fitness.nb <- left_join(fitness,nb.abund)
+
+# summarizing neighbor biomass and merging with fitness data
+nb.mass <- above.mass[grep("comp",above.mass$shrub),]
+nb.mass <- nb.mass %>% group_by(site,patch) %>% summarize(nb.mass=sum(aboveground_mass))
+fitness.nb.mass <- merge(fitness[,-1],nb.mass, by=c("site","patch"))
 
 # plotting
 ggplot(na.omit(fitness.nb),aes(x=nb.abund,y=fitness,color=patch))+
   geom_point(size=4)+
   labs(x="Neighbor abundance",y="Fitness",color="Patch")+
   theme_classic()
-
+ggplot(fitness.nb.mass,aes(x=nb.mass,y=fitness,color=patch))+
+  geom_point(size=4)+
+  labs(x="Neighbor biomass",y="Fitness",color="Patch")+
+  theme_classic()
+  
 #### TRAITS ####
 
 ## Phenology ##
@@ -141,65 +148,86 @@ ggplot(senes.patch,aes(x=date,y=abundance,color=as.factor(patch)))+
 
 ## Root traits
 
-roots<- merge(root.mass,root.SA,by=c("site","shrub","patch","subplot","species","id"))
+roots<- merge(root.mass[,-1],root.SA[,-1],by=c("site","shrub","patch","subplot","species","id"))
+roots<- roots %>% mutate(SRL=sa_cm2/length_cm)
 
+ggplot(roots,aes(x=species,y=SRL,fill=patch))+
+  geom_boxplot()+
+  labs(x="Species",y="Specific root length (cm2/g)",fill="Patch")
+ggplot(roots,aes(x=species,y=SRL,fill=site))+  
+  geom_boxplot()+
+  labs(x="Species",y="Specific root length (cm2/g)",fill="Site")
+
+## Aboveground biomass
+
+planted.mass<-above.mass[-(which(above.mass$subplot=="supp")),]
+#planted.mass<-planted.mass[-grep("comp",planted.mass$shrub),]
+
+ggplot(planted.mass,aes(x=species,y=aboveground_mass,fill=patch))+
+  geom_boxplot()
+ggplot(planted.mass,aes(x=species,y=aboveground_mass,fill=subplot))+
+  geom_boxplot()
+ggplot(planted.mass,aes(x=species,y=aboveground_mass,fill=site))+
+  geom_boxplot()
+
+#### OLD ####
 
 ## Looking at all relationships
-
-leaf.traits<- leaf.traits %>% 
-  mutate(date=NULL,quad=NULL,id=NULL)
-plot(leaf.traits)
-
-seed.traits<- seed.traits %>%
-  mutate(date=NULL,quad=NULL,id=NULL)
-plot(seed.traits)
-
-## Looking at distributions of certain traits
-
-hist(leaf.traits$SLA) # normally distributed
-hist(seed.traits$avg.seed.mass) # wonky but looks close to normal
-hist(complete.traits$height) # right skewed
-
-# initial distribution fitting
-fit.SLA<-fitdist(leaf.traits$SLA,"norm")
-plot(fit.SLA)
-
-fit.seedmass<-fitdist(seed.traits$avg.seed.mass,"norm")
-plot(fit.seedmass)
-
-fit.height<-fitdist(complete.traits$height,"lnorm")
-plot(fit.height)
-
-## Plotting relationships between predictors and traits
-
-# distance to shrub and traits
-plot(SLA ~ distance_shrub, data=leaf.traits, col=species)
-plot(avg.seed.mass ~ distance_shrub, col=species, data=seed.traits)
-plot(log(height) ~ distance_shrub, data=complete.traits)
-plot(phenophase ~ distance_shrub, data=complete.traits)
-
-# aspect and traits
-boxplot(SLA ~ aspect, data=leaf.traits)
-boxplot(avg.seed.mass ~ aspect, data=seed.traits)
-boxplot(height ~ aspect,data=complete.traits)
-boxplot(phenophase ~ aspect, data=complete.traits)
-
-# elevation and traits
-boxplot(SLA ~ elevation, data=leaf.traits)
-boxplot(avg.seed.mass ~ elevation, data=seed.traits)
-boxplot(height ~ elevation,data=complete.traits)
-boxplot(phenophase ~ elevation, data=complete.traits)
-
-## Fitting linear regressions
-
-SLA.model<- lmer(SLA ~ distance_shrub*aspect + elevation + (1|species),data=leaf.traits)
-summary(SLA.model)
-
-seedmass.model<-lmer(avg.seed.mass ~ distance_shrub*aspect + elevation + (1|species),data=seed.traits)
-summary(seedmass.model)
-
-height.model<-lmer(log(height) ~ distance_shrub*aspect + elevation + (1|species),data=complete.traits)
-summary(height.model)
+# 
+# leaf.traits<- leaf.traits %>% 
+#   mutate(date=NULL,quad=NULL,id=NULL)
+# plot(leaf.traits)
+# 
+# seed.traits<- seed.traits %>%
+#   mutate(date=NULL,quad=NULL,id=NULL)
+# plot(seed.traits)
+# 
+# ## Looking at distributions of certain traits
+# 
+# hist(leaf.traits$SLA) # normally distributed
+# hist(seed.traits$avg.seed.mass) # wonky but looks close to normal
+# hist(complete.traits$height) # right skewed
+# 
+# # initial distribution fitting
+# fit.SLA<-fitdist(leaf.traits$SLA,"norm")
+# plot(fit.SLA)
+# 
+# fit.seedmass<-fitdist(seed.traits$avg.seed.mass,"norm")
+# plot(fit.seedmass)
+# 
+# fit.height<-fitdist(complete.traits$height,"lnorm")
+# plot(fit.height)
+# 
+# ## Plotting relationships between predictors and traits
+# 
+# # distance to shrub and traits
+# plot(SLA ~ distance_shrub, data=leaf.traits, col=species)
+# plot(avg.seed.mass ~ distance_shrub, col=species, data=seed.traits)
+# plot(log(height) ~ distance_shrub, data=complete.traits)
+# plot(phenophase ~ distance_shrub, data=complete.traits)
+# 
+# # aspect and traits
+# boxplot(SLA ~ aspect, data=leaf.traits)
+# boxplot(avg.seed.mass ~ aspect, data=seed.traits)
+# boxplot(height ~ aspect,data=complete.traits)
+# boxplot(phenophase ~ aspect, data=complete.traits)
+# 
+# # elevation and traits
+# boxplot(SLA ~ elevation, data=leaf.traits)
+# boxplot(avg.seed.mass ~ elevation, data=seed.traits)
+# boxplot(height ~ elevation,data=complete.traits)
+# boxplot(phenophase ~ elevation, data=complete.traits)
+# 
+# ## Fitting linear regressions
+# 
+# SLA.model<- lmer(SLA ~ distance_shrub*aspect + elevation + (1|species),data=leaf.traits)
+# summary(SLA.model)
+# 
+# seedmass.model<-lmer(avg.seed.mass ~ distance_shrub*aspect + elevation + (1|species),data=seed.traits)
+# summary(seedmass.model)
+# 
+# height.model<-lmer(log(height) ~ distance_shrub*aspect + elevation + (1|species),data=complete.traits)
+# summary(height.model)
 
 # # looking at relationships 
 # 
