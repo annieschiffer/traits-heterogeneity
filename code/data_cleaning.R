@@ -118,26 +118,34 @@ senes.patch <- pheno.patch[pheno.patch$phenophase==4,]
 # plotting subplot/competition treatment
 ggplot(emerg.treat,aes(x=date,y=abundance,color=as.factor(subplot)))+
   geom_point()+
-  geom_line()
+  geom_line()+
+  labs(x="Week",y="Number in vegetation phenophase",color="Competition")
 ggplot(flower.treat,aes(x=date,y=abundance,color=as.factor(subplot)))+
   geom_point()+
-  geom_line()
+  geom_line()+
+  labs(x="Week",y="Number in flowering phenophase",color="Competition")
 ggplot(senes.treat,aes(x=date,y=abundance,color=as.factor(subplot)))+
   geom_point()+
-  geom_line()
+  geom_line()+
+  labs(x="Week",y="Number in senescence phenophase",color="Competition")
 
 # plotting patch
 ggplot(emerg.patch,aes(x=date,y=abundance,color=as.factor(patch)))+
   geom_point()+
-  geom_line()
+  geom_line()+
+  labs(x="Week",y="Number in vegetation phenophase",color="Patch")
 ggplot(flower.patch,aes(x=date,y=abundance,color=as.factor(patch)))+
   geom_point()+
-  geom_line()
+  geom_line()+
+  labs(x="Week",y="Number in flowering phenophase",color="Patch")
 ggplot(senes.patch,aes(x=date,y=abundance,color=as.factor(patch)))+
   geom_point()+
-  geom_line()
+  geom_line()+
+  labs(x="Week",y="Number in senescence phenophase",color="Patch")
 
 ## Root traits
+
+
 
 #### OLD ####
 
