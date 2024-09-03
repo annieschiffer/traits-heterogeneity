@@ -51,7 +51,7 @@ seeds.sep$site[seeds.sep$site=="LN"]<-"low_north"
 # get germination rates
 weekly.germ<-weekly[-(which(is.na(weekly$germination))),2:8]
 germ<-distinct(weekly.germ)
-germ.rate<- germ %>% group_by(species) %>% summarize(germ.rate=sum(germination)/n())
+germ.rate<- germ %>% group_by(patch) %>% summarize(germ.rate=sum(germination)/n())
 
 # calculate fitness
 fecundity<-seeds.sep[seeds.sep$seed_number>0,]
