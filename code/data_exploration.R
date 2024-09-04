@@ -153,6 +153,7 @@ ggplot(senes.patch,aes(x=date,y=abundance,color=as.factor(patch)))+
 # combining data frames and formatting
 roots<- merge(root.mass[,-1],root.SA[,-1],by=c("site","shrub","patch","subplot","species","id","elevation"))
 roots<- roots %>% mutate(SRL=sa_cm2/length_cm)
+fitness.root <- merge(fitness[,-1],roots, by=c("site","shrub","patch","subplot","species","id","elevation"))
 
 # plotting
 ggplot(roots,aes(x=species,y=SRL,fill=patch))+
@@ -164,12 +165,15 @@ ggplot(roots,aes(x=species,y=SRL,fill=elevation))+
 ggplot(roots,aes(x=species,y=SRL,fill=subplot))+
   geom_boxplot()+
   labs(x="Species",y="Specific root length (cm2/g)",fill="Competition")
+ggplot(fitness.root,aes(x=SRL,y=fitness,color=patch))+
+  geom_point()
 
 ## Aboveground biomass ##
 
 # removing supplemental individuals
 planted.mass<-above.mass[-(which(above.mass$subplot=="supp")),]
 #planted.mass<-planted.mass[-grep("comp",planted.mass$shrub),]
+fitness.mass <- merge(fitness[,-1],planted.mass, by=c("site","shrub","patch","subplot","species","id","elevation"))
 
 # plotting
 ggplot(above.mass,aes(x=species,y=aboveground_mass,fill=patch))+
@@ -181,6 +185,8 @@ ggplot(planted.mass,aes(x=species,y=aboveground_mass,fill=subplot))+
 ggplot(above.mass,aes(x=species,y=aboveground_mass,fill=elevation))+
   geom_boxplot()+
   labs(x="Species",y="Aboveground biomass (g)",fill="Elevation")
+ggplot(fitness.mass,aes(x=aboveground_mass,y=fitness,color=patch))+
+  geom_point()
 
 ## Max height ##
 
@@ -194,7 +200,7 @@ all.height <- all.height %>% mutate(elevation=case_when(site=="low_gate" ~ "low"
                                                 site=="high_gate" ~ "high",
                                                 site=="high_east" ~ "high",
                                                 site=="high_north" ~ "high"))
-
+fitness.height <- merge(fitness[,-1],height, by=c("site","shrub","patch","subplot","species","id"))
 
 # plotting
 ggplot(all.height,aes(x=species,y=max.height,fill=patch))+
@@ -206,6 +212,26 @@ ggplot(height,aes(x=species,y=max.height,fill=subplot))+
 ggplot(all.height,aes(x=species,y=max.height,fill=elevation))+
   geom_boxplot()+
   labs(x="Species",y="Max height (cm)",fill="Elevation")
+ggplot(fitness.height,aes(x=max.height,y=fitness,color=patch))+
+  geom_point()
+
+#### HERBIVORY ####
+
+weekly.herb<-weekly[-(which(weekly$herbivory=="")),]
+herb<- weekly.herb %>% group_by(site,patch,subplot,species,herbivory) %>% summarize(number=n())
+herb$herbivory<-as.factor(herb$herbivory)
+herb <- herb %>% mutate(elevation=case_when(site=="low_gate" ~ "low",
+                                                        site=="low_north" ~ "low",
+                                                        site=="high_gate" ~ "high",
+                                                        site=="high_east" ~ "high",
+                                                        site=="high_north" ~ "high"))
+
+ggplot(herb,aes(x=as.factor(herbivory),y=number,fill=patch))+
+  geom_boxplot()
+ggplot(herb,aes(x=as.factor(herbivory),y=number,fill=elevation))+
+  geom_boxplot()
+ggplot(herb,aes(x=as.factor(herbivory),y=number,fill=species))+
+  geom_boxplot()
 
 #### OLD ####
 
