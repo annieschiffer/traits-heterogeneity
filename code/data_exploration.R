@@ -6,6 +6,7 @@ if (!require("tidyr")) install.packages("tidyr"); library(tidyr)
 if (!require("dplyr")) install.packages("dplyr"); library(dplyr)
 if (!require("lme4")) install.packages("lme4"); library(lme4)
 if (!require("fitdistrplus")) install.packages("fitdistrplus"); library(fitdistrplus)
+if (!require("ggpubr")) install.packages("ggpubr"); library(ggpubr)
 
 # set working directory
 current_path <- getActiveDocumentContext()$path
@@ -45,20 +46,21 @@ fitness.treat <- fitness %>% group_by(subplot) %>% summarize(fit.mean=mean(fitne
 fitness.patch <- fitness %>% group_by(patch) %>% summarize(fit.mean=mean(fitness),fit.se=(sd(fitness)/sqrt(n())))
 
 # plots
-ggplot(germ.rate[(germ.rate$site=="low_gate" | germ.rate$site=="low_north"),],
+germ.low<-ggplot(germ.rate[(germ.rate$site=="low_gate" | germ.rate$site=="low_north"),],
        aes(x=species,y=germ.rate,fill=patch))+
   geom_bar(stat = "identity",position = position_dodge())+
   theme_classic()+
   labs(x="Species",y="Germination rate",fill="Patch",title = "Germination in LOW sites")+
   scale_fill_brewer(palette="Dark2")+
   scale_y_continuous(limits=c(0,0.6),breaks=seq(0,0.6,by=0.1))
-ggplot(germ.rate[(germ.rate$site=="high_gate" | germ.rate$site=="high_north" | germ.rate$site=="high_east"),],
+germ.high<-ggplot(germ.rate[(germ.rate$site=="high_gate" | germ.rate$site=="high_north" | germ.rate$site=="high_east"),],
        aes(x=species,y=germ.rate,fill=patch))+
   geom_bar(stat = "identity",position = position_dodge())+
   theme_classic()+
   labs(x="Species",y="Germination rate",fill="Patch",title = "Germination in HIGH sites")+
   scale_fill_brewer(palette="Dark2")+
   scale_y_continuous(limits=c(0,0.6),breaks=seq(0,0.6,by=0.1))
+ggarrange(germ.low,germ.high,ncol=2,nrow=1)
 ggplot(fitness.treat,aes(x=subplot,y=fit.mean))+
   geom_pointrange(aes(ymin = (fit.mean-fit.se),ymax=(fit.mean+fit.se)))+
   labs(x="Competition treatment",y="Fitness")+
@@ -146,29 +148,64 @@ ggplot(senes.patch,aes(x=date,y=abundance,color=as.factor(patch)))+
   geom_line()+
   labs(x="Week",y="Number in senescence phenophase",color="Patch")
 
-## Root traits
+## Root traits ##
 
-roots<- merge(root.mass[,-1],root.SA[,-1],by=c("site","shrub","patch","subplot","species","id"))
+# combining data frames and formatting
+roots<- merge(root.mass[,-1],root.SA[,-1],by=c("site","shrub","patch","subplot","species","id","elevation"))
 roots<- roots %>% mutate(SRL=sa_cm2/length_cm)
 
+# plotting
 ggplot(roots,aes(x=species,y=SRL,fill=patch))+
   geom_boxplot()+
   labs(x="Species",y="Specific root length (cm2/g)",fill="Patch")
-ggplot(roots,aes(x=species,y=SRL,fill=site))+  
+ggplot(roots,aes(x=species,y=SRL,fill=elevation))+  
   geom_boxplot()+
-  labs(x="Species",y="Specific root length (cm2/g)",fill="Site")
+  labs(x="Species",y="Specific root length (cm2/g)",fill="Elevation")
+ggplot(roots,aes(x=species,y=SRL,fill=subplot))+
+  geom_boxplot()+
+  labs(x="Species",y="Specific root length (cm2/g)",fill="Competition")
 
-## Aboveground biomass
+## Aboveground biomass ##
 
+# removing supplemental individuals
 planted.mass<-above.mass[-(which(above.mass$subplot=="supp")),]
 #planted.mass<-planted.mass[-grep("comp",planted.mass$shrub),]
 
-ggplot(planted.mass,aes(x=species,y=aboveground_mass,fill=patch))+
-  geom_boxplot()
+# plotting
+ggplot(above.mass,aes(x=species,y=aboveground_mass,fill=patch))+
+  geom_boxplot()+
+  labs(x="Species",y="Aboveground biomass (g)",fill="Patch")
 ggplot(planted.mass,aes(x=species,y=aboveground_mass,fill=subplot))+
-  geom_boxplot()
-ggplot(planted.mass,aes(x=species,y=aboveground_mass,fill=site))+
-  geom_boxplot()
+  geom_boxplot()+
+  labs(x="Species",y="Aboveground biomass (g)",fill="Competition")
+ggplot(above.mass,aes(x=species,y=aboveground_mass,fill=elevation))+
+  geom_boxplot()+
+  labs(x="Species",y="Aboveground biomass (g)",fill="Elevation")
+
+## Max height ##
+
+# extracting height data from weekly data and combining with supps
+weekly.height<-weekly[-(which(is.na(weekly$height))),c(2:7,11)]
+height<-distinct(weekly.height)
+height <- height %>% group_by(site,shrub,patch,subplot,species,id) %>% summarize(max.height=max(height))
+all.height<- rbind(height[,-6],supp.height[,-1])
+all.height <- all.height %>% mutate(elevation=case_when(site=="low_gate" ~ "low",
+                                                site=="low_north" ~ "low",
+                                                site=="high_gate" ~ "high",
+                                                site=="high_east" ~ "high",
+                                                site=="high_north" ~ "high"))
+
+
+# plotting
+ggplot(all.height,aes(x=species,y=max.height,fill=patch))+
+  geom_boxplot()+
+  labs(x="Species",y="Max height (cm)",fill="Patch")
+ggplot(height,aes(x=species,y=max.height,fill=subplot))+
+  geom_boxplot()+
+  labs(x="Species",y="Max height (cm)",fill="Competition")
+ggplot(all.height,aes(x=species,y=max.height,fill=elevation))+
+  geom_boxplot()+
+  labs(x="Species",y="Max height (cm)",fill="Elevation")
 
 #### OLD ####
 

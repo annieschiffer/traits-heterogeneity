@@ -51,13 +51,19 @@ for(ifile in 1:length(files)){
   d$site[d$site=="LG"]<-"low_gate"
   d$site[d$site=="LN"]<-"low_north"
   
+  d <- d %>% mutate(elevation=case_when(site=="low_gate" ~ "low",
+                      site=="low_north" ~ "low",
+                      site=="high_gate" ~ "high",
+                      site=="high_east" ~ "high",
+                      site=="high_north" ~ "high"))
+  
   write.csv(d,paste0(files[ifile],"_clean.csv"))
 }
 
 supp.height<-read.csv("./../raw_data/supp_height.csv")
 supp.height$patch[supp.height$patch=="O"]<-"open"
 supp.height$patch[supp.height$patch=="S"]<-"shrub"
-supp.height<-rename(supp.height,max_height_cm=max_height..cm.)
+supp.height<-rename(supp.height,max.height=max_height..cm.)
 write.csv(supp.height,"./../raw_data/supp_height_clean.csv")
 
 #### OLD ####
