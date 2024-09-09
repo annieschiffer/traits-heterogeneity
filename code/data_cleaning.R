@@ -66,6 +66,43 @@ supp.height$patch[supp.height$patch=="S"]<-"shrub"
 supp.height<-rename(supp.height,max.height=max_height..cm.)
 write.csv(supp.height,"./../raw_data/supp_height_clean.csv")
 
+## soil temp files
+
+season<-c("summer24","winter23-24")
+patch<-c("shrub","open","cage")
+site<-c("LG","HN","LN","HG")
+soil.temp<-data.frame()
+
+for (iseason in 1:length(season)) {
+  for(ipatch in 1:length(patch)){
+    for(isite in 1:length(site)){
+      if(file.exists(paste0("./../raw_data/",site[isite],patch[ipatch],"_",season[iseason],".csv"))){
+      s.temp<-read.csv(paste0("./../raw_data/",site[isite],patch[ipatch],"_",season[iseason],".csv"))}else{next}
+      s.temp<-s.temp[-1,-c(1,4:7)]
+      colnames(s.temp)<-c("date","temp")
+      s.temp <- separate(s.temp,col = "date",into = c("date","time"),sep=" ")
+      
+      s.temp$patch <- patch[ipatch]
+      s.temp$site <- site[isite]
+      s.temp$season <- season[iseason]
+      
+      soil.temp <- rbind(soil.temp,s.temp)
+    }
+  }
+}
+
+soil.temp$site[soil.temp$site=="HG"]<-"high_gate"
+soil.temp$site[soil.temp$site=="HN"]<-"high_north"
+soil.temp$site[soil.temp$site=="LG"]<-"low_gate"
+soil.temp$site[soil.temp$site=="LN"]<-"low_north"
+
+soil.temp <- soil.temp %>% mutate(elevation=case_when(site=="low_gate" ~ "low",
+                                      site=="low_north" ~ "low",
+                                      site=="high_gate" ~ "high",
+                                      site=="high_east" ~ "high",
+                                      site=="high_north" ~ "high"))
+write.csv(soil.temp,file = "./../raw_data/soil_temperature_clean.csv")
+
 #### OLD ####
 
 # creating separate trait data frames

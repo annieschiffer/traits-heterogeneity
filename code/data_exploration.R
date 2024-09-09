@@ -233,6 +233,36 @@ ggplot(herb,aes(x=as.factor(herbivory),y=number,fill=elevation))+
 ggplot(herb,aes(x=as.factor(herbivory),y=number,fill=species))+
   geom_boxplot()
 
+#### SOIL ####
+
+# formatting soil moisture
+soil.moisture$date<-as.Date(soil.moisture$date,format="%m/%d/%Y")
+soil.moisture <- soil.moisture %>% mutate(elevation=case_when(site=="low_gate" ~ "low",
+                                            site=="low_north" ~ "low",
+                                            site=="high_gate" ~ "high",
+                                            site=="high_east" ~ "high",
+                                            site=="high_north" ~ "high"))
+soil.avg <- soil.moisture %>% group_by(date,patch,elevation) %>% summarize(avg.VWC=mean(VWC))
+
+# plotting soil moisture
+ggplot(soil.avg,aes(x=date,y=avg.VWC,color=patch))+
+  geom_point(size=3)+
+  geom_line(aes(linetype=elevation))+
+  labs(x="Date",y="Average soil volumetric water content",color="Patch",shape="Elevation",title="Soil moisture over the season")
+
+# formatting soil temps and snowmelt dates
+soil.temps<-read.csv("./../raw_data/soil_temperature_clean.csv")
+soil.temps$date<-as.Date(soil.temps$date,format="%m/%d/%Y")
+snowmelt.dates <- soil.temps[soil.temps$date>"2024-02-01" & soil.temps$temp > 40,]
+snowmelt.dates <- snowmelt.dates %>% group_by(site,patch) %>% summarize(snowmelt=min(date))
+soil.temp.avg <- soil.temps %>% group_by(date,patch,elevation) %>% summarize(avg.temp=mean(temp))
+
+# plotting soil temps
+ggplot(soil.temp.avg[soil.temp.avg$date > "2024-01-01" & soil.temp.avg$date < "2024-07-10",],aes(x=date,y=avg.temp,color=patch))+
+  #geom_point(size=3)+
+  geom_line(aes(linetype=elevation))+
+  labs(x="Date",y="Average temperature (C)",color="Patch",shape="Elevation",title="Soil temperature over the season")
+
 #### OLD ####
 
 ## Looking at all relationships
