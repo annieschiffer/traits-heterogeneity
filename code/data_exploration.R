@@ -38,7 +38,8 @@ germ.rate.sp<-germ %>% group_by(species) %>% summarize(germ.rate=sum(germination
 
 # calculate fitness
 fecundity<-seeds[seeds$seed_number>0,]
-fitness<-left_join(fecundity,germ.rate.sp,by="species")
+#fitness<-left_join(fecundity,germ.rate.sp,by="species")\
+fitness<-merge(fecundity,germ.rate,by=c("site","patch","species"))
 fitness<-fitness %>% mutate(fitness=seed_number*germ.rate)
 
 # summarizing for plots
@@ -82,14 +83,15 @@ nb$patch[nb$patch=="S"]<-"shrub"
 nb.abund <- nb %>% group_by(site,shrub,patch,species,id) %>% summarize(nb.abund=n())
 nb.abund$subplot<-rep("C",nrow(nb.abund))
 fitness.nb <- left_join(fitness,nb.abund)
+fitness.nb$nb.abund[is.na(fitness.nb$nb.abund)]<-0
 
 # summarizing neighbor biomass and merging with fitness data
 nb.mass <- above.mass[grep("comp",above.mass$shrub),]
 nb.mass <- nb.mass %>% group_by(site,patch) %>% summarize(nb.mass=sum(aboveground_mass))
-fitness.nb.mass <- merge(fitness[,-1],nb.mass, by=c("site","patch"))
+fitness.nb.mass <- merge(fitness,nb.mass, by=c("site","patch"))
 
 # plotting
-ggplot(na.omit(fitness.nb),aes(x=nb.abund,y=fitness,color=patch))+
+ggplot(fitness.nb,aes(x=nb.abund,y=fitness,color=patch))+
   geom_point(size=4)+
   labs(x="Neighbor abundance",y="Fitness",color="Patch")+
   theme_classic()
@@ -153,7 +155,7 @@ ggplot(senes.patch,aes(x=date,y=abundance,color=as.factor(patch)))+
 # combining data frames and formatting
 roots<- merge(root.mass[,-1],root.SA[,-1],by=c("site","shrub","patch","subplot","species","id","elevation"))
 roots<- roots %>% mutate(SRL=sa_cm2/length_cm)
-fitness.root <- merge(fitness[,-1],roots, by=c("site","shrub","patch","subplot","species","id","elevation"))
+fitness.root <- merge(fitness,roots, by=c("site","shrub","patch","subplot","species","id","elevation"))
 
 # plotting
 ggplot(roots,aes(x=species,y=SRL,fill=patch))+
@@ -173,7 +175,7 @@ ggplot(fitness.root,aes(x=SRL,y=fitness,color=patch))+
 # removing supplemental individuals
 planted.mass<-above.mass[-(which(above.mass$subplot=="supp")),]
 #planted.mass<-planted.mass[-grep("comp",planted.mass$shrub),]
-fitness.mass <- merge(fitness[,-1],planted.mass, by=c("site","shrub","patch","subplot","species","id","elevation"))
+fitness.mass <- merge(fitness,planted.mass, by=c("site","shrub","patch","subplot","species","id","elevation"))
 
 # plotting
 ggplot(above.mass,aes(x=species,y=aboveground_mass,fill=patch))+
@@ -200,7 +202,7 @@ all.height <- all.height %>% mutate(elevation=case_when(site=="low_gate" ~ "low"
                                                 site=="high_gate" ~ "high",
                                                 site=="high_east" ~ "high",
                                                 site=="high_north" ~ "high"))
-fitness.height <- merge(fitness[,-1],height, by=c("site","shrub","patch","subplot","species","id"))
+fitness.height <- merge(fitness,height, by=c("site","shrub","patch","subplot","species","id"))
 
 # plotting
 ggplot(all.height,aes(x=species,y=max.height,fill=patch))+
