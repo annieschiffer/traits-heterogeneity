@@ -7,6 +7,7 @@ if (!require("dplyr")) install.packages("dplyr"); library(dplyr)
 if (!require("lme4")) install.packages("lme4"); library(lme4)
 if (!require("fitdistrplus")) install.packages("fitdistrplus"); library(fitdistrplus)
 if (!require("ggpubr")) install.packages("ggpubr"); library(ggpubr)
+if (!require("RColorBrewer")) install.packages("RColorBrewer"); library(RColorBrewer)
 
 # set working directory
 current_path <- getActiveDocumentContext()$path
@@ -247,10 +248,14 @@ soil.moisture <- soil.moisture %>% mutate(elevation=case_when(site=="low_gate" ~
 soil.avg <- soil.moisture %>% group_by(date,patch,elevation) %>% summarize(avg.VWC=mean(VWC))
 
 # plotting soil moisture
+soil.avg<-soil.avg[!(soil.avg$patch=="cage"),]
+
 ggplot(soil.avg,aes(x=date,y=avg.VWC,color=patch))+
-  geom_point(size=3)+
+  #geom_point(size=3)+
   geom_line(aes(linetype=elevation))+
-  labs(x="Date",y="Average soil volumetric water content",color="Patch",shape="Elevation",title="Soil moisture over the season")
+  theme_classic()+
+  scale_color_brewer(palette = "Dark2")+
+  labs(x="Date",y="Soil moisture (%VWC)",color="Patch",linetype="Elevation",title="Soil moisture over the season")
 
 # formatting soil temps and snowmelt dates
 soil.temps<-read.csv("./../raw_data/soil_temperature_clean.csv")
@@ -260,10 +265,14 @@ snowmelt.dates <- snowmelt.dates %>% group_by(site,patch) %>% summarize(snowmelt
 soil.temp.avg <- soil.temps %>% group_by(date,patch,elevation) %>% summarize(avg.temp=mean(temp))
 
 # plotting soil temps
+soil.temp.avg<-soil.temp.avg[!(soil.temp.avg$patch=="cage"),]
+
 ggplot(soil.temp.avg[soil.temp.avg$date > "2024-01-01" & soil.temp.avg$date < "2024-07-10",],aes(x=date,y=avg.temp,color=patch))+
   #geom_point(size=3)+
   geom_line(aes(linetype=elevation))+
-  labs(x="Date",y="Average temperature (C)",color="Patch",shape="Elevation",title="Soil temperature over the season")
+  theme_classic()+
+  scale_color_brewer(palette="Dark2")+
+  labs(x="Date",y="Temperature (ºC)",color="Patch",linetype="Elevation",title="Soil temperature over the season")
 
 #### OLD ####
 
