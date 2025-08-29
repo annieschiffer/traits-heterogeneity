@@ -30,12 +30,9 @@ soil.moisture<-read.csv("./../raw_data/soil_moisture.csv")
 # get fecundity by species and site/patch/treat
 seeds<-seeds[-(grep("supp",seeds$subplot)),]
 
-# get germination rates
-weekly.germ<-weekly[-(which(is.na(weekly$germination))),2:8]
-germ<-distinct(weekly.germ)
-germ.remov<-germ[germ$subplot=="R",]
-germ.rate<- germ.remov %>% group_by(site,patch,species) %>% summarize(germ.rate=sum(germination)/n())
-germ.rate.sp<-germ %>% group_by(species) %>% summarize(germ.rate=sum(germination)/n())
+# germ.remov<-germ[germ$subplot=="R",]
+#germ.rate<- germ %>% group_by(site,patch,species) %>% summarize(germ.rate=sum(germination)/n())
+germ.rate.sp<-germ %>% group_by(species) %>% summarize(germ.rate=sum(germination)/n.intact)
 
 # calculate fitness
 fecundity<-seeds[seeds$seed_number>0,]

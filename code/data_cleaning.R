@@ -14,13 +14,13 @@ setwd(dirname(current_path)) # set working directory to location of this file
 
 # import data
 traits23<-("./../raw_data/annual_traits")
-above.mass<-("./../raw_data/aboveground_mass")
-root.SA<-("./../raw_data/root_SA")
-root.mass<-("./../raw_data/root_mass")
-supp.height<-("./../raw_data/supp_height")
-seeds<-("./../raw_data/seeds")
-weekly<-("./../raw_data/weekly")
-soil.moisture<-("./../raw_data/soil_moisture")
+above.mass24<-("./../raw_data/2024/aboveground_mass")
+root.SA24<-("./../raw_data/2024/root_SA")
+root.mass24<-("./../raw_data/2024/root_mass")
+supp.height24<-("./../raw_data/2024/supp_height")
+seeds24<-("./../raw_data/2024/seeds")
+soil.moisture24<-("./../raw_data/2024/soil_moisture")
+soil.moisture25<-("./../raw_data/2025/soil_moisture")
 
 files<-c(above.mass,root.SA,root.mass,seeds)
 
@@ -65,6 +65,24 @@ supp.height$patch[supp.height$patch=="O"]<-"open"
 supp.height$patch[supp.height$patch=="S"]<-"shrub"
 supp.height<-rename(supp.height,max.height=max_height..cm.)
 write.csv(supp.height,"./../raw_data/supp_height_clean.csv")
+
+# get germination rates
+weekly24<-read.csv("./../raw_data/2024/weekly.csv")
+weekly25<-read.csv("./../raw_data/2025/weekly.csv")
+
+# germination rates for 2024
+weekly.germ<-weekly24[-(which(is.na(weekly24$germination))),2:8]
+n.intact<-nrow(distinct(weekly.germ[,1:6]))
+germ <- distinct(weekly.germ[weekly.germ$germination==1,])
+nrow(germ)/n.intact
+
+# germination rates for 2025
+weekly.germ25<-weekly25[-(which(is.na(weekly25$id))),1:6]
+germ25<-nrow(distinct(weekly.germ25[,2:6]))
+germ25/1152
+
+# total germination rate across 2 years
+(nrow(germ)+germ25)/(n.intact+1152)
 
 ## soil temp files
 
