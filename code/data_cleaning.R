@@ -85,6 +85,9 @@ phenology <- phenology %>% mutate(elevation=case_when(site=="low_gate" ~ "low",
                                       site=="high_gate" ~ "high",
                                       site=="high_east" ~ "high",
                                       site=="high_north" ~ "high"))
+phenology$emergence<-as.Date(phenology$emergence,format="%m/%d/%Y")
+phenology$flower<-as.Date(phenology$flower,format="%m/%d/%Y")
+phenology$fruit<-as.Date(phenology$fruit,format="%m/%d/%Y")
 
 # merge everything together
 aboveground.biomass <- traits.list[[1]]
@@ -100,6 +103,7 @@ traits2024 <- merge(traits2024,leaves[,c(1:8,32)],all.x=TRUE,by=c("site","shrub"
 
 traits2024 <- traits2024[,-15]
 traits2024 <- merge(phenology,traits2024,all.x=TRUE,by=c("site","shrub","patch","subplot","species","id","elevation"))
+traits2024$year <- 2024
 
 rm(weekly24,weekly.germ,phenology,traits.list,aboveground.biomass,root.length,root.mass,fecundity,leaves,emergence,flower,fruit)
 
@@ -141,6 +145,8 @@ weekly25<-read.csv("./../raw_data/2025/weekly.csv")
 weekly.germ<-weekly25[-(which(is.na(weekly25$phenophase))),c(1:6,8:9)]
 weekly.germ$height[is.na(weekly.germ$height)] <- 0
 weekly.germ$species <- "BRTE"
+weekly.germ$patch[weekly.germ$patch=="O"]<-"open"
+weekly.germ$patch[weekly.germ$patch=="S"]<-"shrub"
 
 # creating data frames for each phenological event
 emergence <- weekly.germ %>% group_by(site,shrub,patch,subplot,species,id) %>% summarise(emergence = min(date),
@@ -159,22 +165,41 @@ phenology <- phenology %>% mutate(elevation=case_when(site=="low_gate" ~ "low",
                                                       site=="high_gate" ~ "high",
                                                       site=="high_east" ~ "high",
                                                       site=="high_north" ~ "high"))
+phenology$emergence<-as.Date(phenology$emergence,format="%m/%d/%y")
+phenology$flower<-as.Date(phenology$flower,format="%m/%d/%y")
+phenology$fruit<-as.Date(phenology$fruit,format="%m/%d/%y")
+
 # merging phenology and trait data
+traits2025 <- merge(phenology,traits2025,by=c("site","shrub","patch","subplot","species","id","elevation"),all.x = TRUE)
+traits2025$year <- 2025
+
+rm(emergence,flower,fruit,phenology,root25,weekly.germ,weekly25)
+
+#### soil moisture and temperature anomoly data ####
+
+## clean up soil moisture data
+soil.moisture24<-read.csv("./../raw_data/2024/soil_moisture.csv")
+soil.moisture25 <- read.csv("./../raw_data/2025/soil_moisture.csv")
+soil.moisture24$date <- as.Date(soil.moisture24$date,format = "%m/%d/%Y")
+soil.moisture25$date <- as.Date(soil.moisture25$date,format = "%m/%d/%y")
+# merge the two years together adn clean up names
+soil.moisture <- na.omit(rbind(soil.moisture24,soil.moisture25))
+soil.moisture$patch[soil.moisture$patch=="C"]<-"cage"
+soil.moisture$patch[soil.moisture$patch=="O"]<-"open"
+soil.moisture$patch[soil.moisture$patch=="S"]<-"shrub"
+# get mean soil moisture for underneath shrubs vs. in open spaces
+soil.moisture <- soil.moisture %>% group_by(date,site,patch) %>% summarize(mean.VWC = mean(VWC))
+soil.moisture <- soil.moisture %>% mutate(year=case_when(date < "2025-01-01" ~ "2024",
+                                                      date > "2025-01-01" ~ "2025"))
+
+# calculate anamoly data
+SM.anamolies <- soil.moisture %>% group_by(year,site,patch) %>% summarize(mean.season.VWC = mean(mean.VWC),
+                                                                          min.season.VWC = min(mean.VWC),
+                                                                          max.season.VWC = max(mean.VWC))
 
 
-
-
-
-
-
-
-#### soil moisture and temperature data ####
-
-## soil temp files
-
-soil.moisture24<-("./../raw_data/2024/soil_moisture")
-
-season<-c("summer24","winter23-24")
+## clean up soil temperature data
+season<-c("winter23-24","summer24","winter24-25","summer25")
 patch<-c("shrub","open","cage")
 site<-c("LG","HN","LN","HG")
 soil.temp<-data.frame()
@@ -182,9 +207,10 @@ soil.temp<-data.frame()
 for (iseason in 1:length(season)) {
   for(ipatch in 1:length(patch)){
     for(isite in 1:length(site)){
-      if(file.exists(paste0("./../raw_data/",site[isite],patch[ipatch],"_",season[iseason],".csv"))){
-      s.temp<-read.csv(paste0("./../raw_data/",site[isite],patch[ipatch],"_",season[iseason],".csv"))}else{next}
-      s.temp<-s.temp[-1,-c(1,4:7)]
+      if(file.exists(paste0("./../raw_data/soil_temp/",site[isite],patch[ipatch],"_",season[iseason],".csv"))){
+      s.temp<-read.csv(paste0("./../raw_data/soil_temp/",site[isite],patch[ipatch],"_",season[iseason],".csv"))}else{next}
+      #browser()
+      s.temp<-s.temp[-1,2:3]
       colnames(s.temp)<-c("date","temp")
       s.temp <- separate(s.temp,col = "date",into = c("date","time"),sep=" ")
       
@@ -197,17 +223,55 @@ for (iseason in 1:length(season)) {
   }
 }
 
+# formatting
 soil.temp$site[soil.temp$site=="HG"]<-"high_gate"
 soil.temp$site[soil.temp$site=="HN"]<-"high_north"
 soil.temp$site[soil.temp$site=="LG"]<-"low_gate"
 soil.temp$site[soil.temp$site=="LN"]<-"low_north"
-
 soil.temp <- soil.temp %>% mutate(elevation=case_when(site=="low_gate" ~ "low",
                                       site=="low_north" ~ "low",
                                       site=="high_gate" ~ "high",
                                       site=="high_east" ~ "high",
                                       site=="high_north" ~ "high"))
-write.csv(soil.temp,file = "./../raw_data/soil_temperature_clean.csv")
+soil.temp$season[grep("winter",soil.temp$season)] <- "winter"
+soil.temp$season[grep("summer",soil.temp$season)] <- "summer"
+soil.temp$temp <- as.numeric(soil.temp$temp)
+soil.temp$date <- as.Date(soil.temp$date,format = "%m/%d/%Y")
+soil.temp <- soil.temp %>% mutate(year=case_when(date < "2024-01-01" ~ "2023",
+                                                 date < "2025-01-01" & date >= "2024-01-01" ~ "2024",
+                                                 date >= "2025-01-01" ~ "2025"))
+# restricting dates within season
+soil.temp <- soil.temp[(soil.temp$date > "2023-12-01" & soil.temp$date < "2024-04-10") |
+                          (soil.temp$date > "2024-05-01" & soil.temp$date < "2024-07-02") |
+                          (soil.temp$date > "2024-12-01" & soil.temp$date < "2025-04-10") |
+                         (soil.temp$date > "2025-05-01" & soil.temp$date < "2025-06-26"),]
+
+soil.temp$temp <- as.numeric(soil.temp$temp)
+
+
+# calculate anamoly data
+ST.anamolies <- soil.temp %>% group_by(year,season,site,patch) %>% summarize(mean.season.temp = mean(temp),
+                                                                          min.season.temp = min(temp),
+                                                                          max.season.temp = max(temp))
+
+#### Merge trait and environment data together ####
+
+traits2025 <- traits2025[,c(1:11,15,18,14,16,17,12,13,21)]
+names(traits2025)[12:13] <- c("aboveground_mass","length_cm")
+traits2024 <- traits2024[,-c(14:15)]
+
+traits <- rbind(traits2024,traits2025)
+
+traits.env <- merge(traits,SM.anamolies,by=c("year","site","patch"),all.x=TRUE)
+traits.env <- merge(traits.env,ST.anamolies[ST.anamolies$season=="summer",],by=c("year","site","patch"),all.x = TRUE)
+
+# lots of missing soil temp data, since temp data only for 4 of 6 sites
+
+#### Neighbor data!!
+
+
+
+
 
 #### Germination data ####
 weekly25<-read.csv("./../raw_data/2025/weekly.csv")
