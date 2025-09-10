@@ -103,7 +103,7 @@ traits2024 <- traits2024[,-15]
 traits2024 <- merge(phenology,traits2024,all.x=TRUE,by=c("site","shrub","patch","subplot","species","id","elevation"))
 traits2024$year <- 2024
 
-rm(weekly24,weekly.germ,phenology,traits.list,aboveground.biomass,root.length,root.mass,fecundity,leaves,emergence,flower,fruit)
+rm(d,weekly24,weekly.germ,phenology,traits.list,aboveground.biomass,root.length,root.mass,fecundity,leaves,emergence,flower,fruit)
 
 #### 2025 data cleaning ####
 
@@ -171,6 +171,11 @@ phenology$fruit<-as.Date(phenology$fruit,format="%m/%d/%y")
 traits2025 <- merge(phenology,traits2025,by=c("site","shrub","patch","subplot","species","id","elevation"),all.x = TRUE)
 traits2025$year <- 2025
 
+# quick data frame clean up
+traits2025 <- traits2025[,c(1:11,15,18,14,16,17,12,13,21)]
+names(traits2025)[12:13] <- c("aboveground_mass","length_cm")
+traits2024 <- traits2024[,-c(14:15)]
+
 rm(emergence,flower,fruit,phenology,root25,weekly.germ,weekly25)
 
 #### soil moisture and temperature anomoly data ####
@@ -186,14 +191,15 @@ soil.moisture$patch[soil.moisture$patch=="C"]<-"cage"
 soil.moisture$patch[soil.moisture$patch=="O"]<-"open"
 soil.moisture$patch[soil.moisture$patch=="S"]<-"shrub"
 # get mean soil moisture for underneath shrubs vs. in open spaces
-soil.moisture <- soil.moisture %>% group_by(date,site,patch) %>% summarize(mean.VWC = mean(VWC))
+soil.moisture <- soil.moisture %>% group_by(date,site,shrub,patch) %>% summarize(mean.VWC = mean(VWC))
 soil.moisture <- soil.moisture %>% mutate(year=case_when(date < "2025-01-01" ~ "2024",
                                                       date > "2025-01-01" ~ "2025"))
 
 # calculate anamoly data
-SM.anamolies <- soil.moisture %>% group_by(year,site,patch) %>% summarize(mean.season.VWC = mean(mean.VWC),
+SM.anamolies <- soil.moisture %>% group_by(year,site,shrub,patch) %>% summarize(mean.season.VWC = mean(mean.VWC),
                                                                           min.season.VWC = min(mean.VWC),
                                                                           max.season.VWC = max(mean.VWC))
+SM.anamolies<-SM.anamolies[-which(SM.anamolies$patch=="cage"),]
 
 
 ## clean up soil temperature data
@@ -252,6 +258,7 @@ ST.anamolies <- soil.temp %>% group_by(year,season,site,patch) %>% summarize(mea
                                                                           min.season.temp = min(temp),
                                                                           max.season.temp = max(temp))
 
+rm(soil.moisture24,soil.moisture25,soil.moisture,soil.temp,s.temp)
 
 #### Neighbor data ####
 
@@ -331,10 +338,10 @@ neighbors2025$neighbor.number <- neighbors2025$planted.number + neighbors2025$n.
 neighbors2025 <- neighbors2025[,-c(4:7)]
 neighbors2025$year <- "2025"
 
-rm(planted.mass,n25)
-
 # bind 2024 and 2025 data together
 neighbors <- rbind(neighbors2024,neighbors2025)
+
+rm(planted.mass,n25,neighbors2024,neighbors2025)
 
 #### Germination data ####
 
@@ -367,6 +374,8 @@ data2024 <- rbind(traits2024,never.germinated)
 data2024 <- data2024 %>% mutate(germination=case_when(is.na(emergence)==TRUE ~ 0,
                                                       is.na(emergence)==FALSE ~ 1))
 
+rm(weekly24,weekly.germ,never.germinated)
+
 # marking germination for 2025
 weekly25<-read.csv("./../raw_data/2025/weekly.csv")
 tst <-expand.grid(site=c("low_gate","low_north","low_east","high_gate","high_north","high_east"),
@@ -387,26 +396,35 @@ data2025 <- merge(tst,traits2025,by=c("site","shrub","patch","subplot","id","yea
 data2025 <- data2025 %>% mutate(germination=case_when(is.na(emergence)==TRUE ~ 0,
                                           is.na(emergence)==FALSE ~ 1))
 
+rm(weekly25,tst)
+
 #### Merge all data together ####
 
+data2025<-data2025[,c(1:4,7,5,8:19,6,20)]
+all.data <- rbind(data2024,data2025)
+
+# add in environmental variables
+ST.anamolies <- ST.anamolies[ST.anamolies$season=="summer",]
+ST.anamolies <- ST.anamolies[,-2]
+
+all.data <- merge(all.data,SM.anamolies,by=c("year","site","shrub","patch"),all.x=TRUE)
+all.data <- merge(all.data,ST.anamolies,by=c("year","site","patch"),all.x = TRUE)
 
 
+# add in neighborhood data
+neighbors$subplot <- "C"
 
+all.data <- merge(all.data,neighbors,by=c("year","site","shrub","patch","subplot"),all.x = TRUE)
+all.data$neighbor.number[is.na(all.data$neighbor.number)] <- 0
+all.data$neighbor.biomass[is.na(all.data$neighbor.biomass)] <- 0
 
-# traits2025 <- traits2025[,c(1:11,15,18,14,16,17,12,13,21)]
-# names(traits2025)[12:13] <- c("aboveground_mass","length_cm")
-# traits2024 <- traits2024[,-c(14:15)]
-# 
-# traits <- rbind(traits2024,traits2025)
-# 
-# traits.env <- merge(traits,SM.anamolies,by=c("year","site","patch"),all.x=TRUE)
-# traits.env <- merge(traits.env,ST.anamolies[ST.anamolies$season=="summer",],by=c("year","site","patch"),all.x = TRUE)
+all.data <- all.data[,c(1:8,20,27,28,21:26,9:19)]
 
-
+write.csv(all.data,file="./../clean_data/all_data_combined.csv")
 
 #### Supplemental individual traits ####
 
-supp.height<-read.csv("./../raw_data/2024/supp_height.csv")
-supp.height$patch[supp.height$patch=="O"]<-"open"
-supp.height$patch[supp.height$patch=="S"]<-"shrub"
-supp.height<-rename(supp.height,max.height=max_height..cm.)
+# supp.height<-read.csv("./../raw_data/2024/supp_height.csv")
+# supp.height$patch[supp.height$patch=="O"]<-"open"
+# supp.height$patch[supp.height$patch=="S"]<-"shrub"
+# supp.height<-rename(supp.height,max.height=max_height..cm.)
