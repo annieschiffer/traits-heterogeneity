@@ -13,90 +13,37 @@ if (!require("RColorBrewer")) install.packages("RColorBrewer"); library(RColorBr
 current_path <- getActiveDocumentContext()$path
 setwd(dirname(current_path)) # set working directory to location of this file
 
-# run necessary scripts
-source("data_cleaning.R")
-
 # import data
-above.mass<-read.csv("./../raw_data/aboveground_mass_clean.csv")
-root.SA<-read.csv("./../raw_data/root_SA_clean.csv")
-root.mass<-read.csv("./../raw_data/root_mass_clean.csv")
-supp.height<-read.csv("./../raw_data/supp_height_clean.csv")
-seeds<-read.csv("./../raw_data/seeds_clean.csv")
-weekly<-read.csv("./../raw_data/weekly.csv")
-soil.moisture<-read.csv("./../raw_data/soil_moisture.csv")
+data <- read.csv("./../clean_data/all_data_combined.csv")
 
-#### GERMINATION AND FITNESS ####
+#### GERMINATION ####
 
-# get fecundity by species and site/patch/treat
-seeds<-seeds[-(grep("supp",seeds$subplot)),]
+glm(germination ~ neighbor.number + patch + elevation,data=data,family = "binomial")
 
-# germ.remov<-germ[germ$subplot=="R",]
-#germ.rate<- germ %>% group_by(site,patch,species) %>% summarize(germ.rate=sum(germination)/n())
-germ.rate.sp<-germ %>% group_by(species) %>% summarize(germ.rate=sum(germination)/n.intact)
+# how do environmental variables affect germination?
+env <- data[!is.na(data$mean.season.temp),]
+all.env.variables <- glm(germination ~ neighbor.number + mean.season.VWC + min.season.VWC + max.season.VWC + mean.season.temp + min.season.temp + max.season.temp, 
+    data=env,family="binomial")
+mean.env.variables <- glm(germination ~ neighbor.number + mean.season.VWC + mean.season.temp, 
+                         data=env,family="binomial")
+just.elevation <- glm(germination ~ neighbor.number + elevation,data=env,family = "binomial")
 
-# calculate fitness
-fecundity<-seeds[seeds$seed_number>0,]
-#fitness<-left_join(fecundity,germ.rate.sp,by="species")\
-fitness<-merge(fecundity,germ.rate,by=c("site","patch","species"))
-fitness<-fitness %>% mutate(fitness=seed_number*germ.rate)
+# model selection on same data frame to see if elevation or the environmental variables explain more variance
+AIC(all.env.variables,mean.env.variables,just.elevation) # all environmental variables explain more of the variance
 
-# summarizing for plots
-fitness.treat <- fitness %>% group_by(subplot) %>% summarize(fit.mean=mean(fitness),fit.se=(sd(fitness)/sqrt(n())))
-fitness.patch <- fitness %>% group_by(patch) %>% summarize(fit.mean=mean(fitness),fit.se=(sd(fitness)/sqrt(n())))
+#### BIOMASS ####
 
-# plots
-germ.low<-ggplot(germ.rate[(germ.rate$site=="low_gate" | germ.rate$site=="low_north"),],
-       aes(x=species,y=germ.rate,fill=patch))+
-  geom_bar(stat = "identity",position = position_dodge())+
-  theme_classic()+
-  labs(x="Species",y="Germination rate",fill="Patch",title = "Germination in LOW sites")+
-  scale_fill_brewer(palette="Dark2")+
-  scale_y_continuous(limits=c(0,0.6),breaks=seq(0,0.6,by=0.1))
-germ.high<-ggplot(germ.rate[(germ.rate$site=="high_gate" | germ.rate$site=="high_north" | germ.rate$site=="high_east"),],
-       aes(x=species,y=germ.rate,fill=patch))+
-  geom_bar(stat = "identity",position = position_dodge())+
-  theme_classic()+
-  labs(x="Species",y="Germination rate",fill="Patch",title = "Germination in HIGH sites")+
-  scale_fill_brewer(palette="Dark2")+
-  scale_y_continuous(limits=c(0,0.6),breaks=seq(0,0.6,by=0.1))
-ggarrange(germ.low,germ.high,ncol=2,nrow=1)
-ggplot(fitness.treat,aes(x=subplot,y=fit.mean))+
-  geom_pointrange(aes(ymin = (fit.mean-fit.se),ymax=(fit.mean+fit.se)))+
-  labs(x="Competition treatment",y="Fitness")+
-  theme_classic()+
-  scale_x_discrete(limits=c("C","R"),labels=c("competition","removal"))
-ggplot(fitness.patch,aes(x=patch,y=fit.mean))+
-  geom_pointrange(aes(ymin = (fit.mean-fit.se),ymax=(fit.mean+fit.se)))+
-  theme_classic()+
-  labs(x="Patch",y="Fitness")
+biomass <- data[!is.na(data$aboveground_mass),]
+lm(log(aboveground_mass) ~ neighbor.number + patch + elevation,data=biomass)
+lm(log(aboveground_mass) ~ neighbor.number + mean.season.VWC + min.season.VWC + max.season.VWC + mean.season.temp + min.season.temp + max.season.temp, 
+    data=biomass)
 
-#### NEIGHBORHOOD ####
+# how do neighborhood and environmental variables affect aboveground biomass?
+ggplot(biomass,aes(x=neighbor.number,y=log(aboveground_mass),color=patch,shape=elevation))+
+  geom_point()
+ggplot(biomass,aes(x=mean.season.VWC,y=log(aboveground_mass)))+
+  geom_point()
 
-# reading in neighborhood data and formatting
-nb <- read.csv("./../raw_data/neighborhood.csv")
-nb$patch[nb$patch=="O"]<-"open"
-nb$patch[nb$patch=="S"]<-"shrub"
-
-# summarizing neighbor abundance and merging with fitness data
-nb.abund <- nb %>% group_by(site,shrub,patch,species,id) %>% summarize(nb.abund=n())
-nb.abund$subplot<-rep("C",nrow(nb.abund))
-fitness.nb <- left_join(fitness,nb.abund)
-fitness.nb$nb.abund[is.na(fitness.nb$nb.abund)]<-0
-
-# summarizing neighbor biomass and merging with fitness data
-nb.mass <- above.mass[grep("comp",above.mass$shrub),]
-nb.mass <- nb.mass %>% group_by(site,patch) %>% summarize(nb.mass=sum(aboveground_mass))
-fitness.nb.mass <- merge(fitness,nb.mass, by=c("site","patch"))
-
-# plotting
-ggplot(fitness.nb,aes(x=nb.abund,y=fitness,color=patch))+
-  geom_point(size=4)+
-  labs(x="Neighbor abundance",y="Fitness",color="Patch")+
-  theme_classic()
-ggplot(fitness.nb.mass,aes(x=nb.mass,y=fitness,color=patch))+
-  geom_point(size=4)+
-  labs(x="Neighbor biomass",y="Fitness",color="Patch")+
-  theme_classic()
   
 #### TRAITS ####
 
@@ -159,7 +106,7 @@ fitness.root <- merge(fitness,roots, by=c("site","shrub","patch","subplot","spec
 ggplot(roots,aes(x=species,y=SRL,fill=patch))+
   geom_boxplot()+
   labs(x="Species",y="Specific root length (cm2/g)",fill="Patch")
-ggplot(roots,aes(x=species,y=SRL,fill=elevation))+  
+ggplot(roots,aes(x=species,y=SRL,fill=elevation))+
   geom_boxplot()+
   labs(x="Species",y="Specific root length (cm2/g)",fill="Elevation")
 ggplot(roots,aes(x=species,y=SRL,fill=subplot))+
@@ -215,51 +162,6 @@ ggplot(all.height,aes(x=species,y=max.height,fill=elevation))+
 ggplot(fitness.height,aes(x=max.height,y=fitness,color=patch))+
   geom_point()
 
-#### HERBIVORY ####
-
-weekly.herb<-weekly[-(which(weekly$herbivory=="")),]
-herb<- weekly.herb %>% group_by(site,patch,subplot,species,herbivory) %>% summarize(number=n())
-herb$herbivory<-as.factor(herb$herbivory)
-herb <- herb %>% mutate(elevation=case_when(site=="low_gate" ~ "low",
-                                                        site=="low_north" ~ "low",
-                                                        site=="high_gate" ~ "high",
-                                                        site=="high_east" ~ "high",
-                                                        site=="high_north" ~ "high"))
-
-ggplot(herb,aes(x=as.factor(herbivory),y=number,fill=patch))+
-  geom_boxplot()
-ggplot(herb,aes(x=as.factor(herbivory),y=number,fill=elevation))+
-  geom_boxplot()
-ggplot(herb,aes(x=as.factor(herbivory),y=number,fill=species))+
-  geom_boxplot()
-
-#### SOIL ####
-
-# formatting soil moisture
-soil.moisture$date<-as.Date(soil.moisture$date,format="%m/%d/%Y")
-soil.moisture <- soil.moisture %>% mutate(elevation=case_when(site=="low_gate" ~ "low",
-                                            site=="low_north" ~ "low",
-                                            site=="high_gate" ~ "high",
-                                            site=="high_east" ~ "high",
-                                            site=="high_north" ~ "high"))
-soil.avg <- soil.moisture %>% group_by(date,patch,elevation) %>% summarize(avg.VWC=mean(VWC))
-
-# plotting soil moisture
-soil.avg<-soil.avg[!(soil.avg$patch=="cage"),]
-
-ggplot(soil.avg,aes(x=date,y=avg.VWC,color=patch))+
-  #geom_point(size=3)+
-  geom_line(aes(linetype=elevation))+
-  theme_classic()+
-  scale_color_brewer(palette = "Dark2")+
-  labs(x="Date",y="Soil moisture (%VWC)",color="Patch",linetype="Elevation",title="Soil moisture over the season")
-
-# formatting soil temps and snowmelt dates
-soil.temps<-read.csv("./../raw_data/soil_temperature_clean.csv")
-soil.temps$date<-as.Date(soil.temps$date,format="%m/%d/%Y")
-snowmelt.dates <- soil.temps[soil.temps$date>"2024-02-01" & soil.temps$temp > 40,]
-snowmelt.dates <- snowmelt.dates %>% group_by(site,patch) %>% summarize(snowmelt=min(date))
-soil.temp.avg <- soil.temps %>% group_by(date,patch,elevation) %>% summarize(avg.temp=mean(temp))
 
 # plotting soil temps
 soil.temp.avg<-soil.temp.avg[!(soil.temp.avg$patch=="cage"),]
@@ -271,79 +173,3 @@ ggplot(soil.temp.avg[soil.temp.avg$date > "2024-01-01" & soil.temp.avg$date < "2
   scale_color_brewer(palette="Dark2")+
   labs(x="Date",y="Temperature (ºC)",color="Patch",linetype="Elevation",title="Soil temperature over the season")
 
-#### OLD ####
-
-## Looking at all relationships
-# 
-# leaf.traits<- leaf.traits %>% 
-#   mutate(date=NULL,quad=NULL,id=NULL)
-# plot(leaf.traits)
-# 
-# seed.traits<- seed.traits %>%
-#   mutate(date=NULL,quad=NULL,id=NULL)
-# plot(seed.traits)
-# 
-# ## Looking at distributions of certain traits
-# 
-# hist(leaf.traits$SLA) # normally distributed
-# hist(seed.traits$avg.seed.mass) # wonky but looks close to normal
-# hist(complete.traits$height) # right skewed
-# 
-# # initial distribution fitting
-# fit.SLA<-fitdist(leaf.traits$SLA,"norm")
-# plot(fit.SLA)
-# 
-# fit.seedmass<-fitdist(seed.traits$avg.seed.mass,"norm")
-# plot(fit.seedmass)
-# 
-# fit.height<-fitdist(complete.traits$height,"lnorm")
-# plot(fit.height)
-# 
-# ## Plotting relationships between predictors and traits
-# 
-# # distance to shrub and traits
-# plot(SLA ~ distance_shrub, data=leaf.traits, col=species)
-# plot(avg.seed.mass ~ distance_shrub, col=species, data=seed.traits)
-# plot(log(height) ~ distance_shrub, data=complete.traits)
-# plot(phenophase ~ distance_shrub, data=complete.traits)
-# 
-# # aspect and traits
-# boxplot(SLA ~ aspect, data=leaf.traits)
-# boxplot(avg.seed.mass ~ aspect, data=seed.traits)
-# boxplot(height ~ aspect,data=complete.traits)
-# boxplot(phenophase ~ aspect, data=complete.traits)
-# 
-# # elevation and traits
-# boxplot(SLA ~ elevation, data=leaf.traits)
-# boxplot(avg.seed.mass ~ elevation, data=seed.traits)
-# boxplot(height ~ elevation,data=complete.traits)
-# boxplot(phenophase ~ elevation, data=complete.traits)
-# 
-# ## Fitting linear regressions
-# 
-# SLA.model<- lmer(SLA ~ distance_shrub*aspect + elevation + (1|species),data=leaf.traits)
-# summary(SLA.model)
-# 
-# seedmass.model<-lmer(avg.seed.mass ~ distance_shrub*aspect + elevation + (1|species),data=seed.traits)
-# summary(seedmass.model)
-# 
-# height.model<-lmer(log(height) ~ distance_shrub*aspect + elevation + (1|species),data=complete.traits)
-# summary(height.model)
-
-# # looking at relationships 
-# 
-# # preliminary linear models
-# summary(lm(SLA ~ distance_shrub,data=leaf.traits)) # marginally significant
-# summary(lm(avg.seed.mass ~ distance_shrub, data=seed.traits)) # not significant
-# summary(lm(height ~ distance_shrub, data=complete.traits)) # not significant
-# summary(lm(phenophase ~ distance_shrub, data=complete.traits)) # significant
-# 
-# summary(lm(SLA ~ aspect,data=leaf.traits)) # not significant
-# summary(lm(avg.seed.mass ~ aspect, data=seed.traits)) # not significant
-# summary(lm(height ~ aspect, data=complete.traits)) # not significant
-# summary(lm(phenophase ~ aspect, data=complete.traits)) # not significant
-# 
-# summary(lm(SLA ~ elevation,data=leaf.traits)) # very significant
-# summary(lm(avg.seed.mass ~ elevation, data=seed.traits)) # very significant
-# summary(lm(height ~ elevation, data=complete.traits)) # significant
-# summary(lm(phenophase ~ elevation, data=complete.traits)) # not significant

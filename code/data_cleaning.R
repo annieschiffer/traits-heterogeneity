@@ -420,7 +420,7 @@ all.data$neighbor.biomass[is.na(all.data$neighbor.biomass)] <- 0
 
 all.data <- all.data[,c(1:8,20,27,28,21:26,9:19)]
 
-write.csv(all.data,file="./../clean_data/all_data_combined.csv")
+write.csv(all.data,file="./../clean_data/all_data_combined.csv",row.names = FALSE)
 
 #### Supplemental individual traits ####
 
