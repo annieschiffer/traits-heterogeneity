@@ -18,15 +18,18 @@ data <- read.csv("./../clean_data/all_data_combined.csv")
 
 #### GERMINATION ####
 
-glm(germination ~ neighbor.number + patch + elevation,data=data,family = "binomial")
+# germination as a function of neighbors, microsite, and elevation
+germ <- glmer(germination ~ neighbor.number + patch + elevation + (1 | species),data=data,family = "binomial")
+summary(germ)
 
-# how do environmental variables affect germination?
+# germination as a function of neighbors and environment
 env <- data[!is.na(data$mean.season.temp),]
-all.env.variables <- glm(germination ~ neighbor.number + mean.season.VWC + min.season.VWC + max.season.VWC + mean.season.temp + min.season.temp + max.season.temp, 
+all.env.variables <- glmer(germination ~ neighbor.number + mean.season.VWC + min.season.VWC + 
+                             max.season.VWC + mean.season.temp + min.season.temp + max.season.temp + (1 | species), 
     data=env,family="binomial")
-mean.env.variables <- glm(germination ~ neighbor.number + mean.season.VWC + mean.season.temp, 
+mean.env.variables <- glmer(germination ~ neighbor.number + mean.season.VWC + mean.season.temp + (1 | species), 
                          data=env,family="binomial")
-just.elevation <- glm(germination ~ neighbor.number + elevation,data=env,family = "binomial")
+just.elevation <- glmer(germination ~ neighbor.number + elevation + (1 | species),data=env,family = "binomial")
 
 # model selection on same data frame to see if elevation or the environmental variables explain more variance
 AIC(all.env.variables,mean.env.variables,just.elevation) # all environmental variables explain more of the variance
@@ -34,38 +37,46 @@ AIC(all.env.variables,mean.env.variables,just.elevation) # all environmental var
 #### BIOMASS ####
 
 biomass <- data[!is.na(data$aboveground_mass),]
-lm(log(aboveground_mass) ~ neighbor.number + patch + elevation,data=biomass)
-lm(log(aboveground_mass) ~ neighbor.number + mean.season.VWC + min.season.VWC + max.season.VWC + mean.season.temp + min.season.temp + max.season.temp, 
+
+# biomass as a function of neighbors, microsite, and elevation
+mass <- lmer(log(aboveground_mass) ~ neighbor.number + patch + elevation + (1 | species),data=biomass)
+summary(mass)
+
+# biomass as a function of neighbors and environmental variables
+biomass <- biomass[!is.na(biomass$mean.season.temp),]
+
+all.env.biomass <- lmer(log(aboveground_mass) ~ neighbor.number + mean.season.VWC + min.season.VWC + 
+                        max.season.VWC + mean.season.temp + min.season.temp + max.season.temp + (1 | species), 
     data=biomass)
+mean.env.biomass <- lmer(log(aboveground_mass) ~ neighbor.number + mean.season.VWC + mean.season.temp + (1 | species), 
+                       data=biomass)
+elevation.biomass <- lmer(log(aboveground_mass) ~ neighbor.number + elevation + (1 | species),data=biomass)
+
+# AIC to determine if elevation or environmental variables explain more variation
+AIC(all.env.biomass,mean.env.biomass,elevation.biomass) # elevation model is best
 
 # how do neighborhood and environmental variables affect aboveground biomass?
 ggplot(biomass,aes(x=neighbor.number,y=log(aboveground_mass),color=patch,shape=elevation))+
-  geom_point()
+  geom_point()+
+  labs(x="Number of neighbors",y="log(aboveground biomass)")
+ggplot(biomass,aes(x=neighbor.biomass,y=log(aboveground_mass),color=patch,shape=elevation))+
+  geom_point()+
+  labs(x="Neighbor biomass",y="log(aboveground biomass)")
 ggplot(biomass,aes(x=mean.season.VWC,y=log(aboveground_mass)))+
-  geom_point()
+  geom_point()+
+  labs(x="Mean soil moisture (%VWC)",y="log(aboveground biomass)")
+ggplot(biomass,aes(x=mean.season.temp,y=log(aboveground_mass)))+
+  geom_point()+
+  labs(x="Mean soil temperature",y="log(aboveground biomass)")
+ggplot(biomass,aes(x=patch,y=log(aboveground_mass)))+
+  geom_boxplot()
 
   
 #### TRAITS ####
+traits <- data[,c("max.height","length_cm","root_mass","total_leaf_area","total_leaf_mass")]
+traits <- data[which(complete.cases(traits)==TRUE),]
 
 ## Phenology ##
-
-# basic formatting
-weekly.pheno <- weekly[-(which(is.na(weekly$germination))),c(1:8,10)]
-weekly.pheno$phenophase[weekly.pheno$germination==1 & is.na(weekly.pheno$phenophase)]<-1
-weekly.pheno<-na.omit(weekly.pheno)
-weekly.pheno$date<-isoweek(as.Date(weekly.pheno$date,format = "%m/%d/%Y"))
-
-# setting up to plot by subplot/competition treatment
-pheno.treat <- weekly.pheno %>% group_by(date,subplot,phenophase) %>% summarize(abundance=n())
-flower.treat <- pheno.treat[pheno.treat$phenophase==3,]
-emerg.treat <- pheno.treat[pheno.treat$phenophase==1,]
-senes.treat <- pheno.treat[pheno.treat$phenophase==4,]
-
-# setting up to plot by patch
-pheno.patch <- weekly.pheno %>% group_by(date,patch,phenophase) %>% summarize(abundance=n())
-flower.patch <- pheno.patch[pheno.patch$phenophase==3,]
-emerg.patch <- pheno.patch[pheno.patch$phenophase==1,]
-senes.patch <- pheno.patch[pheno.patch$phenophase==4,]
 
 # plotting subplot/competition treatment
 ggplot(emerg.treat,aes(x=date,y=abundance,color=as.factor(subplot)))+
@@ -116,24 +127,6 @@ ggplot(fitness.root,aes(x=SRL,y=fitness,color=patch))+
   geom_point()
 
 ## Aboveground biomass ##
-
-# removing supplemental individuals
-planted.mass<-above.mass[-(which(above.mass$subplot=="supp")),]
-#planted.mass<-planted.mass[-grep("comp",planted.mass$shrub),]
-fitness.mass <- merge(fitness,planted.mass, by=c("site","shrub","patch","subplot","species","id","elevation"))
-
-# plotting
-ggplot(above.mass,aes(x=species,y=aboveground_mass,fill=patch))+
-  geom_boxplot()+
-  labs(x="Species",y="Aboveground biomass (g)",fill="Patch")
-ggplot(planted.mass,aes(x=species,y=aboveground_mass,fill=subplot))+
-  geom_boxplot()+
-  labs(x="Species",y="Aboveground biomass (g)",fill="Competition")
-ggplot(above.mass,aes(x=species,y=aboveground_mass,fill=elevation))+
-  geom_boxplot()+
-  labs(x="Species",y="Aboveground biomass (g)",fill="Elevation")
-ggplot(fitness.mass,aes(x=aboveground_mass,y=fitness,color=patch))+
-  geom_point()
 
 ## Max height ##
 
