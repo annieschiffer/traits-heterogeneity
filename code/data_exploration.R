@@ -71,6 +71,21 @@ ggplot(biomass,aes(x=mean.season.temp,y=log(aboveground_mass)))+
 ggplot(biomass,aes(x=patch,y=log(aboveground_mass)))+
   geom_boxplot()
 
+
+#### FITNESS ####
+
+fitness <- data[!is.na(data$fitness),]
+fitness$fitness <- as.numeric(fitness$fitness)
+
+# biomass as a function of neighbors, microsite, and elevation
+fit <- lmer(log(fitness) ~ neighbor.biomass + patch + elevation + (1 | species),data=fitness)
+summary(fit)
+
+ggplot(fitness,aes(x=neighbor.biomass,y=log(fitness)))+
+  geom_point()
+
+
+
   
 #### TRAITS ####
 traits <- data[,c("max.height","length_cm","root_mass","total_leaf_area","total_leaf_mass")]

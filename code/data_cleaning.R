@@ -374,6 +374,16 @@ data2024 <- rbind(traits2024,never.germinated)
 data2024 <- data2024 %>% mutate(germination=case_when(is.na(emergence)==TRUE ~ 0,
                                                       is.na(emergence)==FALSE ~ 1))
 
+# calculating the germination rates by species and adding to data frame
+n.germ24 <- data2024 %>% group_by(species) %>% summarize(n.germ=sum(germination),
+                                                         n.total=n())
+n.germ24$germ.rate <- n.germ24$n.germ/n.germ24$n.total * 100
+
+data2024 <- merge(data2024,n.germ24,by="species",all.x=TRUE)
+
+# computing fitness based on aboveground mass and germination rate
+data2024$fitness <- data2024$aboveground_mass * data2024$germ.rate
+
 rm(weekly24,weekly.germ,never.germinated)
 
 # marking germination for 2025
@@ -396,11 +406,22 @@ data2025 <- merge(tst,traits2025,by=c("site","shrub","patch","subplot","id","yea
 data2025 <- data2025 %>% mutate(germination=case_when(is.na(emergence)==TRUE ~ 0,
                                           is.na(emergence)==FALSE ~ 1))
 
+# calculating the germination rates by species and adding to data frame
+n.germ25 <- data2025 %>% group_by(species) %>% summarize(n.germ=sum(germination),
+                                                         n.total=n())
+n.germ25$germ.rate <- n.germ25$n.germ/n.germ25$n.total * 100
+
+germ.rate <- n.germ25$germ.rate
+
+# computing fitness based on aboveground mass and germination rate
+data2025$fitness <- data2025$aboveground_mass * germ.rate
+
 rm(weekly25,tst)
 
 #### Merge all data together ####
 
-data2025<-data2025[,c(1:4,7,5,8:19,6,20)]
+data2025<-data2025[,c(1:4,7,5,8:19,6,20,21)]
+data2024 <- data2024[,-c(21:23)]
 all.data <- rbind(data2024,data2025)
 
 # add in environmental variables
@@ -418,7 +439,7 @@ all.data <- merge(all.data,neighbors,by=c("year","site","shrub","patch","subplot
 all.data$neighbor.number[is.na(all.data$neighbor.number)] <- 0
 all.data$neighbor.biomass[is.na(all.data$neighbor.biomass)] <- 0
 
-all.data <- all.data[,c(1:8,20,27,28,21:26,9:19)]
+all.data <- all.data[,c(1:8,20,21,28,29,22:27,9:19)]
 
 write.csv(all.data,file="./../clean_data/all_data_combined.csv",row.names = FALSE)
 
