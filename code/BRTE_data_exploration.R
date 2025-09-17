@@ -15,21 +15,24 @@ setwd(dirname(current_path)) # set working directory to location of this file
 
 # import data
 data <- read.csv("./../clean_data/all_data_combined.csv")
+data <- data[data$species=="BRTE",]
 
 #### GERMINATION ####
 
 # germination as a function of neighbors, microsite, and elevation
-germ <- glmer(germination ~ neighbor.number + patch + elevation + (1 | species),data=data,family = "binomial")
+germ <- glm(germination ~ neighbor.number + patch + elevation,data=data,family = "binomial")
+summary(germ)
+germ <- glm(germination ~ neighbor.biomass + patch + elevation,data=data,family = "binomial")
 summary(germ)
 
 # germination as a function of neighbors and environment
 env <- data[!is.na(data$mean.season.temp),]
-all.env.variables <- glmer(germination ~ neighbor.number + mean.season.VWC + min.season.VWC + 
-                             max.season.VWC + mean.season.temp + min.season.temp + max.season.temp + (1 | species), 
-    data=env,family="binomial")
-mean.env.variables <- glmer(germination ~ neighbor.number + mean.season.VWC + mean.season.temp + (1 | species), 
-                         data=env,family="binomial")
-just.elevation <- glmer(germination ~ neighbor.number + elevation + (1 | species),data=env,family = "binomial")
+all.env.variables <- glm(germination ~ neighbor.number + mean.season.VWC + min.season.VWC + 
+                             max.season.VWC + mean.season.temp + min.season.temp + max.season.temp, 
+                           data=env,family="binomial")
+mean.env.variables <- glm(germination ~ neighbor.number + mean.season.VWC + mean.season.temp, 
+                            data=env,family="binomial")
+just.elevation <- glm(germination ~ neighbor.number + elevation,data=env,family = "binomial")
 
 # model selection on same data frame to see if elevation or the environmental variables explain more variance
 AIC(all.env.variables,mean.env.variables,just.elevation) # all environmental variables explain more of the variance
@@ -40,29 +43,29 @@ AIC(all.env.variables,mean.env.variables,just.elevation) # all environmental var
 fitness <- data[!is.na(data$fitness),]
 fitness$fitness <- as.numeric(fitness$fitness)
 
-# biomass as a function of neighbors, microsite, and elevation
-fit <- lmer(log(fitness) ~ neighbor.biomass + patch + elevation + (1 | species),data=fitness)
+# fitness as a function of neighbors, microsite, and elevation
+fit <- lm(log(fitness) ~ neighbor.biomass + patch + elevation,data=fitness)
 summary(fit)
-fit <- lmer(log(fitness) ~ neighbor.number + patch + elevation + (1 | species),data=fitness)
+fit <- lm(log(fitness) ~ neighbor.number + patch + elevation,data=fitness)
 summary(fit)
 
 # fitness as a function of neighbors and environmental variables
 fitness.temp <- fitness[!is.na(fitness$mean.season.temp),]
 
-all.env.fitness <- lmer(log(fitness) ~ neighbor.number + mean.season.VWC + min.season.VWC + 
-                          max.season.VWC + mean.season.temp + min.season.temp + max.season.temp + (1 | species), 
+all.env.fitness <- lm(log(fitness) ~ neighbor.biomass + mean.season.VWC + min.season.VWC + 
+                          max.season.VWC + mean.season.temp + min.season.temp + max.season.temp, 
                         data=fitness.temp)
-mean.env.fitness <- lmer(log(fitness) ~ neighbor.number + mean.season.VWC + mean.season.temp + (1 | species), 
+mean.env.fitness <- lm(log(fitness) ~ neighbor.biomass + mean.season.VWC + mean.season.temp, 
                          data=fitness.temp)
-elevation.fitness <- lmer(log(fitness) ~ neighbor.number + elevation + (1 | species),data=fitness.temp)
+elevation.fitness <- lm(log(fitness) ~ neighbor.biomass + elevation,data=fitness.temp)
 
 # AIC to determine if elevation or environmental variables explain more variation
-AIC(all.env.fitness,mean.env.fitness,elevation.fitness) # elevation model is best
+AIC(all.env.fitness,mean.env.fitness,elevation.fitness) # elevation or all env variables model is best
 
 ggplot(fitness,aes(x=neighbor.number,y=log(fitness),color=patch,shape=elevation))+
   geom_point()+
   labs(x="Number of neighbors",y="log(fitness)")
-ggplot(fitness,aes(x=neighbor.number,y=log(fitness),color=patch,shape=elevation))+
+ggplot(fitness,aes(x=neighbor.biomass,y=log(fitness),color=patch,shape=elevation))+
   geom_point()+
   labs(x="Neighbor biomass",y="log(fitness)")
 ggplot(fitness,aes(x=subplot,y=log(fitness)))+
@@ -85,23 +88,23 @@ ggplot(fitness,aes(x=mean.season.temp,y=log(fitness)))+
 biomass <- data[!is.na(data$aboveground_mass),]
 
 # biomass as a function of neighbors, microsite, and elevation
-mass <- lmer(log(aboveground_mass) ~ neighbor.number + patch + elevation + (1 | species),data=biomass)
+mass <- lm(log(aboveground_mass) ~ neighbor.number + patch + elevation,data=biomass)
 summary(mass)
-mass <- lmer(log(aboveground_mass) ~ neighbor.biomass + patch + elevation + (1 | species),data=biomass)
+mass <- lm(log(aboveground_mass) ~ neighbor.biomass + patch + elevation,data=biomass)
 summary(mass)
 
 # biomass as a function of neighbors and environmental variables
 biomass <- biomass[!is.na(biomass$mean.season.temp),]
 
-all.env.biomass <- lmer(log(aboveground_mass) ~ neighbor.number + mean.season.VWC + min.season.VWC + 
-                          max.season.VWC + mean.season.temp + min.season.temp + max.season.temp + (1 | species), 
+all.env.biomass <- lm(log(aboveground_mass) ~ neighbor.biomass + mean.season.VWC + min.season.VWC + 
+                          max.season.VWC + mean.season.temp + min.season.temp + max.season.temp, 
                         data=biomass)
-mean.env.biomass <- lmer(log(aboveground_mass) ~ neighbor.number + mean.season.VWC + mean.season.temp + (1 | species), 
+mean.env.biomass <- lm(log(aboveground_mass) ~ neighbor.biomass + mean.season.VWC + mean.season.temp, 
                          data=biomass)
-elevation.biomass <- lmer(log(aboveground_mass) ~ neighbor.number + elevation + (1 | species),data=biomass)
+elevation.biomass <- lm(log(aboveground_mass) ~ neighbor.biomass + elevation,data=biomass)
 
 # AIC to determine if elevation or environmental variables explain more variation
-AIC(all.env.biomass,mean.env.biomass,elevation.biomass) # elevation model is best
+AIC(all.env.biomass,mean.env.biomass,elevation.biomass) # all env model is best
 
 # how do neighborhood and environmental variables affect aboveground biomass?
 ggplot(biomass,aes(x=neighbor.number,y=log(aboveground_mass),color=patch,shape=elevation))+
@@ -123,7 +126,7 @@ ggplot(biomass,aes(x=elevation,y=log(aboveground_mass))) +
 ggplot(biomass,aes(x=subplot,y=log(aboveground_mass))) +
   geom_boxplot()
 
-  
+
 #### TRAITS ####
 traits <- data[,c("max.height","length_cm","root_mass","total_leaf_area","total_leaf_mass")]
 traits <- data[which(complete.cases(traits)==TRUE),]
@@ -134,7 +137,7 @@ traits <- data[which(complete.cases(traits)==TRUE),]
 traits$total_leaf_area <- traits$total_leaf_area/100
 traits$SLA <- as.numeric(traits$total_leaf_area)/as.numeric(traits$total_leaf_mass)
 
-lfit <- lmer(log(SLA) ~ neighbor.biomass + patch + elevation + (1|species),data=traits)
+lfit <- lm(log(SLA) ~ neighbor.biomass + patch + elevation,data=traits)
 summary(lfit)
 
 ggplot(traits,aes(x=SLA,y=log(fitness),color=subplot,shape=patch))+
@@ -147,7 +150,7 @@ ggplot(traits,aes(x=SLA,y=log(fitness),color=elevation))+
 rtraits <- traits[-which(traits$root_mass==0),]
 rtraits$SRL <- as.numeric(rtraits$length_cm)/as.numeric(rtraits$root_mass)
 
-rfit <- lmer(log(SRL) ~ neighbor.biomass + patch + elevation + (1|species),data=rtraits)
+rfit <- lm(log(SRL) ~ neighbor.biomass + patch + elevation,data=rtraits)
 summary(rfit)
 
 ggplot(rtraits,aes(x=SRL,y=log(fitness),color=subplot,shape=patch))+
@@ -158,7 +161,7 @@ ggplot(rtraits,aes(x=SRL,y=log(fitness),color=elevation))+
 
 ## height
 
-hfit <-lmer(log(max.height) ~ neighbor.biomass + patch + elevation + (1|species),data=traits)
+hfit <-lm(log(max.height) ~ neighbor.biomass + patch + elevation,data=traits)
 summary(hfit)
 
 ggplot(traits,aes(x=max.height,y=log(fitness),color=subplot,shape=patch))+
@@ -174,18 +177,18 @@ etraits <- traits[!is.na(traits$emergence),]
 temp<-as.Date(etraits$emergence, "%Y-%m-%d")
 etraits$emergence<-format(temp, format="%m-%d")
 
-ggplot(etraits,aes(x=emergence,y=log(fitness),color=species,shape=as.factor(year)))+
-  geom_point()+
-  scale_shape_manual(values = c(15,0))
+ggplot(etraits,aes(x=emergence,y=log(fitness),color=as.factor(year)))+
+  geom_point()
 
 # flowering 
 ptraits <- traits[!is.na(traits$flower),]
 temp<-as.Date(ptraits$flower, "%Y-%m-%d")
 ptraits$flower<-format(temp, format="%m-%d")
 
-ggplot(ptraits,aes(x=flower,y=log(fitness),color=species,shape=as.factor(year)))+
-  geom_point()+
-  scale_shape_manual(values = c(15,0))
+ggplot(ptraits,aes(x=flower,y=log(fitness),color=as.factor(year)))+
+  geom_point()
+ggplot(ptraits,aes(x=flower,color=patch))+
+  geom_point()
 
 ## trait distributions
 
@@ -195,3 +198,19 @@ ggplot(rtraits,aes(x=SRL,color=patch,linetype = subplot))+
   geom_freqpoly()
 ggplot(traits,aes(x=max.height,color=patch,linetype=subplot))+
   geom_freqpoly()
+
+# Elevation & environment
+
+ggplot(data,aes(x=as.factor(year),y=mean.season.VWC,fill=as.factor(elevation)))+
+  geom_boxplot()
+ggplot(data,aes(x=as.factor(year),y=min.season.VWC,fill=as.factor(elevation)))+
+  geom_boxplot()
+ggplot(data,aes(x=as.factor(year),y=max.season.VWC,fill=as.factor(elevation)))+
+  geom_boxplot()
+
+ggplot(data,aes(x=as.factor(elevation),y=mean.season.temp))+
+  geom_boxplot()
+ggplot(data,aes(x=as.factor(elevation),y=min.season.temp))+
+  geom_boxplot()
+ggplot(data,aes(x=as.factor(elevation),y=max.season.temp))+
+  geom_boxplot()
