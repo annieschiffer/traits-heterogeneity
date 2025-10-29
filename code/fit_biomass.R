@@ -1,5 +1,9 @@
 #### fitting models with biomass as response
 
+# import data
+data <- read.csv("./../clean_data/all_data_combined.csv")
+data <- data[data$species=="BRTE",]
+
 biomass <- data[!is.na(data$aboveground_mass),]
 
 # biomass as a function of neighbors, microsite, and elevation
@@ -22,9 +26,10 @@ elevation.biomass <- lm(log(aboveground_mass) ~ neighbor.biomass + elevation,dat
 AIC(all.env.biomass,mean.env.biomass,elevation.biomass) # all env model is best
 
 # how do neighborhood and environmental variables affect aboveground biomass?
-ggplot(biomass,aes(x=neighbor.number,y=log(aboveground_mass),color=patch,shape=elevation))+
+ggplot(biomass,aes(x=neighbor.number,y=log(aboveground_mass),color=patch))+
   geom_point()+
-  labs(x="Number of neighbors",y="log(aboveground biomass)")
+  labs(x="Number of neighbors",y="log(aboveground biomass)")+
+  geom_smooth(method="lm")
 ggplot(biomass,aes(x=neighbor.biomass,y=log(aboveground_mass),color=patch,shape=elevation))+
   geom_point()+
   labs(x="Neighbor biomass",y="log(aboveground biomass)")
