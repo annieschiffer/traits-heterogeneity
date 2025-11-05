@@ -16,9 +16,15 @@ all.data <- merge(all.data,ST.anamolies,by=c("year","site","patch"),all.x = TRUE
 neighbors$subplot <- "C"
 
 all.data <- merge(all.data,neighbors,by=c("year","site","shrub","patch","subplot"),all.x = TRUE)
-all.data$neighbor.number[is.na(all.data$neighbor.number)] <- 0
-all.data$neighbor.biomass[is.na(all.data$neighbor.biomass)] <- 0
+all.data$mass.het.nb[is.na(all.data$mass.het.nb)] <- 0
+all.data$n.het.nb[is.na(all.data$n.het.nb)] <- 0
+all.data$mass.con.nb[is.na(all.data$mass.con.nb)] <- 0
+all.data$n.con.nb[is.na(all.data$n.con.nb)] <- 0
 
-all.data <- all.data[,c(1:8,20,21,28,29,22:27,9:19)]
+# quick conversion of dates to day of year
+all.data$emergence <- yday(all.data$emergence)
+all.data$flower <- yday(all.data$flower)
+all.data$fruit <- yday(all.data$fruit)
+all.data <- all.data[,c(1:8,20,28:31,22:27,9:19)]
 
 write.csv(all.data,file="./../clean_data/all_data_combined.csv",row.names = FALSE)

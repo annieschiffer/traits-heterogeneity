@@ -10,6 +10,7 @@ if (!require("lme4")) install.packages("lme4"); library(lme4)
 if (!require("fitdistrplus")) install.packages("fitdistrplus"); library(fitdistrplus)
 if (!require("ggpubr")) install.packages("ggpubr"); library(ggpubr)
 if (!require("RColorBrewer")) install.packages("RColorBrewer"); library(RColorBrewer)
+if (!require("rstan")) install.packages("rstan"); library(rstan)
 
 # set working directory
 current_path <- getActiveDocumentContext()$path
