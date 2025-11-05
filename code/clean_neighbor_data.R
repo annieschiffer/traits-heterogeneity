@@ -63,6 +63,7 @@ nb.mass <- nb.mass[,-c(4:8)]
 # merge mass and number
 nb2024 <- merge(nb.mass,nb.count,by=c("site","shrub","patch"),all=TRUE)
 nb2024 <- nb2024[-14,]
+nb2024$year <- "2024"
 
 rm(nb,all.mass,mass.num,remove,add.n.nb,nb.mass)
 
@@ -92,12 +93,10 @@ remove <- which(nb2025$planted.number==1 & nb2025$n.con.nb==0 &nb2025$n.het.nb==
 nb2025 <- nb2025[-remove,]
 
 # add neighbors and planted ones together
-
-### work from here! how to remove neighborhoods with >1 planted individual but not count itself?
-
-nb2025$neighbor.biomass <- nb2025$planted.mass + nb2025$n.con.biomass
-nb2025$neighbor.number <- nb2025$planted.number + nb2025$n.neighbors
-nb2025 <- nb2025[,-c(4:7)]
+nb2025$mass.con.nb <- nb2025$planted.mass + nb2025$mass.con.nb
+nb2025$n.con.nb <- nb2025$planted.number + nb2025$n.con.nb
+nb2025 <- nb2025[,-c(8,9)]
+nb2025 <- nb2025[,c(1,2,3,6,7,4,5)]
 nb2025$year <- "2025"
 
 # bind 2024 and 2025 data together
