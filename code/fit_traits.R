@@ -79,7 +79,9 @@ etraits$n.het.nb <- as.numeric(scale(etraits$n.het.nb))
 
 # look at distribution of trait
 hist(etraits$emergence) # this is causing issues - come back to this
-
+efit <-lmer(log(emergence) ~ n.het.nb + n.con.nb + patch + elevation + (1|siteyear),data=etraits)
+res <- simulateResiduals(efit)
+base::plot(res) # residuals bad
 
 ## flowering phenology
 
