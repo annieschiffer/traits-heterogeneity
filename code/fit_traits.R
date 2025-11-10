@@ -1,88 +1,101 @@
 ### fitting models with traits as response
 
-traits <- data[,c("max.height","length_cm","root_mass","total_leaf_area","total_leaf_mass")]
-traits <- data[which(complete.cases(traits)==TRUE),]
+data <- read.csv("./../clean_data/all_data_combined.csv")
+data <- data[data$species=="BRTE",]
 
-## leaf and root traits
+## SLA
 
-# leaf traits
-traits$total_leaf_area <- traits$total_leaf_area/100
-traits$SLA <- as.numeric(traits$total_leaf_area)/as.numeric(traits$total_leaf_mass)
+# calculate SLA
+ltraits <- data[-which(is.na(data$total_leaf_area)),]
+ltraits$total_leaf_area <- ltraits$total_leaf_area/100
+ltraits$SLA <- as.numeric(ltraits$total_leaf_area)/as.numeric(ltraits$total_leaf_mass)
+# set up siteyear random effect & scaled predictors
+ltraits$siteyear <- paste0(ltraits$site,ltraits$year)
+ltraits$siteyear <- as.numeric(as.factor(ltraits$siteyear))
+ltraits$n.con.nb <- as.numeric(scale(ltraits$n.con.nb))
+ltraits$n.het.nb <- as.numeric(scale(ltraits$n.het.nb))
 
-lfit <- lm(log(SLA) ~ neighbor.biomass + patch + elevation,data=traits)
+# look at distribution of trait
+hist(log(ltraits$SLA)) # log-normal
+# model
+lfit <- lmer(log(SLA) ~ n.het.nb + n.con.nb + patch + elevation + (1|siteyear),data=ltraits)
 summary(lfit)
+res <- simulateResiduals(lfit)
+base::plot(res) # residuals good enough
 
-ggplot(traits,aes(x=SLA,y=log(fitness),color=subplot,shape=patch))+
-  geom_point()+
-  scale_shape_manual(values = c(0,15))
-ggplot(traits,aes(x=SLA,y=log(fitness),color=elevation))+
-  geom_point()
+## SRL
 
-# root traits
-rtraits <- traits[-which(traits$root_mass==0),]
+# calculate SRL
+rtraits <- data[-which(is.na(data$length_cm)),]
+rtraits <- rtraits[-which(is.na(rtraits$root_mass)),]
+rtraits <- rtraits[-which(rtraits$root_mass==0),]
 rtraits$SRL <- as.numeric(rtraits$length_cm)/as.numeric(rtraits$root_mass)
 
-rfit <- lm(log(SRL) ~ neighbor.biomass + patch + elevation,data=rtraits)
-summary(rfit)
+# set up siteyear random effect & scaled predictors
+rtraits$siteyear <- paste0(rtraits$site,rtraits$year)
+rtraits$siteyear <- as.numeric(as.factor(rtraits$siteyear))
+rtraits$n.con.nb <- as.numeric(scale(rtraits$n.con.nb))
+rtraits$n.het.nb <- as.numeric(scale(rtraits$n.het.nb))
 
-ggplot(rtraits,aes(x=SRL,y=log(fitness),color=subplot,shape=patch))+
-  geom_point()+
-  scale_shape_manual(values = c(0,15))
-ggplot(rtraits,aes(x=SRL,y=log(fitness),color=elevation))+
-  geom_point()
+# look at distribution of trait
+hist(log(rtraits$SRL)) # log-normal
+# fit model
+rfit <- lmer(log(SRL) ~ n.het.nb + n.con.nb + patch + elevation + (1|siteyear),data=rtraits)
+summary(rfit)
+res <- simulateResiduals(rfit)
+base::plot(res) # residuals good
+
 
 ## height
 
-hfit <-lm(log(max.height) ~ neighbor.biomass + patch + elevation,data=traits)
+htraits <- data[-which(is.na(data$max.height)),]
+htraits <- htraits[-which(htraits$max.height==0),]
+
+# set up siteyear random effect & scaled predictors
+htraits$siteyear <- paste0(htraits$site,htraits$year)
+htraits$siteyear <- as.numeric(as.factor(htraits$siteyear))
+htraits$n.con.nb <- as.numeric(scale(htraits$n.con.nb))
+htraits$n.het.nb <- as.numeric(scale(htraits$n.het.nb))
+
+# look at distribution of trait
+hist(log(htraits$max.height)) # log-normal
+# fit model
+hfit <-lmer(log(max.height) ~ n.het.nb + n.con.nb + patch + elevation + (1|siteyear),data=htraits)
 summary(hfit)
+res <- simulateResiduals(hfit)
+base::plot(res) # residuals good
 
-ggplot(traits,aes(x=max.height,y=log(fitness),color=subplot,shape=patch))+
-  geom_point()+
-  scale_shape_manual(values = c(0,15))
-ggplot(traits,aes(x=max.height,y=log(fitness),color=elevation))+
-  geom_point()
 
-## phenology
+## emergence phenology
 
-# emergence
-etraits <- traits[!is.na(traits$emergence),]
-temp<-as.Date(etraits$emergence, "%Y-%m-%d")
-etraits$emergence<-format(temp, format="%m-%d")
+etraits <- data[-which(is.na(data$emergence)),]
+etraits$emergence <- as.numeric(strftime(etraits$emergence, format = "%V"))
 
-ggplot(etraits,aes(x=emergence,y=log(fitness),color=as.factor(year)))+
-  geom_point()
+# set up siteyear random effect & scaled predictors
+etraits$siteyear <- paste0(etraits$site,etraits$year)
+etraits$siteyear <- as.numeric(as.factor(etraits$siteyear))
+etraits$n.con.nb <- as.numeric(scale(etraits$n.con.nb))
+etraits$n.het.nb <- as.numeric(scale(etraits$n.het.nb))
 
-# flowering 
-ptraits <- traits[!is.na(traits$flower),]
-temp<-as.Date(ptraits$flower, "%Y-%m-%d")
-ptraits$flower<-format(temp, format="%m-%d")
+# look at distribution of trait
+hist(etraits$emergence) # this is causing issues - come back to this
 
-ggplot(ptraits,aes(x=flower,y=log(fitness),color=as.factor(year)))+
-  geom_point()
-ggplot(ptraits,aes(x=flower,color=patch))+
-  geom_point()
 
-## trait distributions
+## flowering phenology
 
-ggplot(traits,aes(x=SLA,color=patch,linetype = subplot))+
-  geom_freqpoly()
-ggplot(rtraits,aes(x=SRL,color=patch,linetype = subplot))+
-  geom_freqpoly()
-ggplot(traits,aes(x=max.height,color=patch,linetype=subplot))+
-  geom_freqpoly()
+ftraits <- data[-which(is.na(data$flower)),]
+ftraits$flower <- as.numeric(strftime(ftraits$flower, format = "%V"))
 
-# Elevation & environment
+# set up siteyear random effect & scaled predictors
+ftraits$siteyear <- paste0(ftraits$site,ftraits$year)
+ftraits$siteyear <- as.numeric(as.factor(ftraits$siteyear))
+ftraits$n.con.nb <- as.numeric(scale(ftraits$n.con.nb))
+ftraits$n.het.nb <- as.numeric(scale(ftraits$n.het.nb))
 
-ggplot(data,aes(x=as.factor(year),y=mean.season.VWC,fill=as.factor(elevation)))+
-  geom_boxplot()
-ggplot(data,aes(x=as.factor(year),y=min.season.VWC,fill=as.factor(elevation)))+
-  geom_boxplot()
-ggplot(data,aes(x=as.factor(year),y=max.season.VWC,fill=as.factor(elevation)))+
-  geom_boxplot()
+# look at distribution of trait
+hist(ftraits$flower) # maybe normal? check residuals
 
-ggplot(data,aes(x=as.factor(elevation),y=mean.season.temp))+
-  geom_boxplot()
-ggplot(data,aes(x=as.factor(elevation),y=min.season.temp))+
-  geom_boxplot()
-ggplot(data,aes(x=as.factor(elevation),y=max.season.temp))+
-  geom_boxplot()
+ffit <-lmer(flower ~ n.het.nb + n.con.nb + patch + elevation + (1|siteyear),data=ftraits)
+res <- simulateResiduals(ffit)
+base::plot(res) # residuals bad
+

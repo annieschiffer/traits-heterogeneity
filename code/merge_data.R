@@ -22,9 +22,9 @@ all.data$mass.con.nb[is.na(all.data$mass.con.nb)] <- 0
 all.data$n.con.nb[is.na(all.data$n.con.nb)] <- 0
 
 # quick conversion of dates to day of year
-all.data$emergence <- yday(all.data$emergence)
-all.data$flower <- yday(all.data$flower)
-all.data$fruit <- yday(all.data$fruit)
+# all.data$emergence <- yday(all.data$emergence)
+# all.data$flower <- yday(all.data$flower)
+# all.data$fruit <- yday(all.data$fruit)
 all.data <- all.data[,c(1:8,20,28:31,22:27,9:19)]
 
 write.csv(all.data,file="./../clean_data/all_data_combined.csv",row.names = FALSE)
