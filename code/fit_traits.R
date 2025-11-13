@@ -78,8 +78,9 @@ etraits$n.con.nb <- as.numeric(scale(etraits$n.con.nb))
 etraits$n.het.nb <- as.numeric(scale(etraits$n.het.nb))
 
 # look at distribution of trait
-hist(etraits$emergence) # this is causing issues - come back to this
+hist(log(etraits$emergence))
 efit <-lmer(log(emergence) ~ n.het.nb + n.con.nb + patch + elevation + (1|siteyear),data=etraits)
+summary(efit)
 res <- simulateResiduals(efit)
 base::plot(res) # residuals bad
 
@@ -98,6 +99,7 @@ ftraits$n.het.nb <- as.numeric(scale(ftraits$n.het.nb))
 hist(ftraits$flower) # maybe normal? check residuals
 
 ffit <-lmer(flower ~ n.het.nb + n.con.nb + patch + elevation + (1|siteyear),data=ftraits)
+summary(ffit)
 res <- simulateResiduals(ffit)
 base::plot(res) # residuals bad
 
