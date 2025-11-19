@@ -84,6 +84,10 @@ summary(efit)
 res <- simulateResiduals(efit)
 base::plot(res) # residuals bad
 
+# quantile regression
+quantrege <- rq(log(emergence) ~ n.het.nb + n.con.nb + patch + elevation, data=etraits, tau = 0.5)
+summary(quantrege)
+
 ## flowering phenology
 
 ftraits <- data[-which(is.na(data$flower)),]
@@ -103,3 +107,6 @@ summary(ffit)
 res <- simulateResiduals(ffit)
 base::plot(res) # residuals bad
 
+# quantile regression
+quantregf <- rq(flower ~ n.het.nb + n.con.nb + patch + elevation, data=ftraits, tau = 0.5)
+summary(quantregf)

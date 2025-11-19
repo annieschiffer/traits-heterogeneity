@@ -10,6 +10,7 @@ if (!require("lme4")) install.packages("lme4"); library(lme4)
 if (!require("ggpubr")) install.packages("ggpubr"); library(ggpubr)
 if (!require("RColorBrewer")) install.packages("RColorBrewer"); library(RColorBrewer)
 if (!require("DHARMa")) install.packages("DHARMa"); library(DHARMa)
+if (!require("quantreg")) install.packages("quantreg"); library(quantreg)
 
 # set working directory
 current_path <- getActiveDocumentContext()$path
