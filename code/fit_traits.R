@@ -77,20 +77,47 @@ etraits$siteyear <- as.numeric(as.factor(etraits$siteyear))
 etraits$n.con.nb <- as.numeric(scale(etraits$n.con.nb))
 etraits$n.het.nb <- as.numeric(scale(etraits$n.het.nb))
 
-# look at distribution of trait
-hist(log(etraits$emergence))
+# linear mixed effects model approach
 efit <-lmer(log(emergence) ~ n.het.nb + n.con.nb + patch + elevation + (1|siteyear),data=etraits)
 summary(efit)
 res <- simulateResiduals(efit)
 base::plot(res) # residuals bad
 
-# quantile regression
-quantrege <- rq(log(emergence) ~ n.het.nb + n.con.nb + patch + elevation, data=etraits, tau = 0.25)
-summary(quantrege,se="boot")
-quantrege <- rq(log(emergence) ~ n.het.nb + n.con.nb + patch + elevation, data=etraits, tau = 0.5)
-summary(quantrege,se="boot")
-quantrege <- rq(log(emergence) ~ n.het.nb + n.con.nb + patch + elevation, data=etraits, tau = 0.75)
-summary(quantrege,se="boot")
+# quantile regression approach
+
+# earliest emerging
+e0.25 <- lqmm(
+  fixed = emergence ~ n.het.nb + n.con.nb + patch + elevation,
+  random = ~ 1,          # random intercept for site
+  group = siteyear,
+  tau = 0.25,             
+  data = etraits
+)
+summary(e0.25)
+# does this match quantreg?
+# mod <- rq(emergence ~ n.het.nb + n.con.nb + patch + elevation,data=etraits,tau=0.25)
+# summary(mod)
+# Qualitatively yes, numbers close but not exact
+
+# median
+e0.5 <- lqmm(
+  fixed = emergence ~ n.het.nb + n.con.nb + patch + elevation,
+  random = ~ 1,          # random intercept for site
+  group = siteyear,
+  tau = 0.5,             
+  data = etraits
+)
+summary(e0.5)
+# latest emerging
+e0.75 <- lqmm(
+  fixed = emergence ~ n.het.nb + n.con.nb + patch + elevation,
+  random = ~ 1,          # random intercept for site
+  group = siteyear,
+  tau = 0.75,             
+  data = etraits
+)
+summary(e0.75)
+
 
 ## flowering phenology
 
@@ -103,18 +130,39 @@ ftraits$siteyear <- as.numeric(as.factor(ftraits$siteyear))
 ftraits$n.con.nb <- as.numeric(scale(ftraits$n.con.nb))
 ftraits$n.het.nb <- as.numeric(scale(ftraits$n.het.nb))
 
-# look at distribution of trait
+# linear mixed effects model appraoch
 hist(ftraits$flower) # maybe normal? check residuals
-
 ffit <-lmer(flower ~ n.het.nb + n.con.nb + patch + elevation + (1|siteyear),data=ftraits)
 summary(ffit)
 res <- simulateResiduals(ffit)
 base::plot(res) # residuals bad
 
-# quantile regression
-quantregf <- rq(flower ~ n.het.nb + n.con.nb + patch + elevation, data=ftraits, tau = 0.25)
-summary(quantregf,se="boot")
-quantregf <- rq(flower ~ n.het.nb + n.con.nb + patch + elevation, data=ftraits, tau = 0.5)
-summary(quantregf,se="boot")
-quantregf <- rq(flower ~ n.het.nb + n.con.nb + patch + elevation, data=ftraits, tau = 0.75)
-summary(quantregf,se="boot")
+# quantile regression approach
+
+# earliest flowering
+f0.25 <- lqmm(
+  fixed = flower ~ n.het.nb + n.con.nb + patch + elevation,
+  random = ~ 1,          # random intercept for site
+  group = siteyear,
+  tau = 0.25,             
+  data = ftraits
+)
+summary(f0.25)
+# median
+f0.5 <- lqmm(
+  fixed = flower ~ n.het.nb + n.con.nb + patch + elevation,
+  random = ~ 1,          # random intercept for site
+  group = siteyear,
+  tau = 0.5,             
+  data = ftraits
+)
+summary(f0.5)
+# latest flowering
+f0.75 <- lqmm(
+  fixed = flower ~ n.het.nb + n.con.nb + patch + elevation,
+  random = ~ 1,          # random intercept for site
+  group = siteyear,
+  tau = 0.75,            
+  data = ftraits
+)
+summary(f0.75)
