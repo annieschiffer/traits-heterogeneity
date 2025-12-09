@@ -25,3 +25,5 @@ summary(mod)
 # quick plots
 boxplot(mean.season.VWC ~ patch,data = biomass)
 boxplot(mean.season.VWC ~ elevation,data = biomass)
+
+
