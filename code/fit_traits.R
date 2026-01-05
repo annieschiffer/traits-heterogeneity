@@ -22,6 +22,10 @@ lfit <- lmer(log(SLA) ~ n.het.nb + n.con.nb + patch + elevation + (1|siteyear),d
 summary(lfit)
 res <- simulateResiduals(lfit)
 base::plot(res) # residuals good enough
+# positive effect of low elevation
+# negative effect of heterospecifics
+# positive effect of conspecifics
+
 
 ## SRL
 
@@ -44,6 +48,9 @@ rfit <- lmer(log(SRL) ~ n.het.nb + n.con.nb + patch + elevation + (1|siteyear),d
 summary(rfit)
 res <- simulateResiduals(rfit)
 base::plot(res) # residuals good
+# positive effect of conspecifics
+# positive effect of shrub
+# negative effect of low elevation
 
 
 ## height
@@ -64,7 +71,9 @@ hfit <-lmer(log(max.height) ~ n.het.nb + n.con.nb + patch + elevation + (1|sitey
 summary(hfit)
 res <- simulateResiduals(hfit)
 base::plot(res) # residuals good
-
+# positive effect of conspecifics
+# positive effect of shrubs
+# psitivie effect of low elevation
 
 ## emergence phenology
 
