@@ -16,6 +16,12 @@ rtraits$SRL <- as.numeric(rtraits$length_cm)/as.numeric(rtraits$root_mass)
 htraits <- data[-which(is.na(data$max.height)),]
 htraits <- htraits[-which(htraits$max.height==0),]
 
+etraits <- data[-which(is.na(data$emergence)),]
+etraits$emergence <- as.numeric(strftime(etraits$emergence, format = "%V"))
+
+ftraits <- data[-which(is.na(data$flower)),]
+ftraits$flower <- as.numeric(strftime(ftraits$flower, format = "%V"))
+
 ## Fig 1
 # multi-panel pictures of experimental setup
 
@@ -153,10 +159,7 @@ ele.stats <- ggplot(trait.statse,aes(x=elevation,y=log(mean),color=trait)) +
 
 ggarrange(patch.stats,ele.stats,widths = c(0.7,1))
 
-## Fig 5
-# phenology
-
-# Fig 6
+# Fig 5
 # scatterplot for number of neighbors x continuous trait variables
 format.traits <- function(trait.data,col,name){
   d <- trait.data[,c(name,"n.het.nb","n.con.nb")]
@@ -186,20 +189,41 @@ ggplot(trait.nb,aes(x=n.nb,y=value,color=trait,shape=Neighbors))+
   theme(axis.title = element_text(size=15),axis.text = element_text(size=12),legend.title = element_text(size=15),
         legend.text = element_text(size=12))
 
+## phenology distributions? supp figures?
+
+ecount <- etraits %>% group_by(patch,elevation,subplot,emergence) %>% summarize(emerged = n())
+fcount <- ftraits %>% group_by(patch,elevation,subplot,flower) %>% summarise(flowered=n())
+
+eplot<- ggplot(ecount,aes(x=emergence,y=emerged,color=patch,linetype = subplot)) +
+  facet_wrap(~elevation,axes="all",axis.labels="all")+
+  geom_line()+
+  theme_minimal()+
+  labs(x="Week of emergence",y="Number emerged",linetype="Competitors",color="Patch")+
+  theme(axis.title = element_text(size=15),
+        legend.text = element_text(size=12),legend.title = element_text(size=15),
+        strip.text = element_text(size=12))+
+  scale_color_manual(values=brewer.pal(11,"PuOr")[c(4,9)])+
+  scale_linetype_manual(limits=c("C","R"),labels=c("present","absent"),
+                        values=c("solid","dashed"))
+fplot <- ggplot(fcount,aes(x=flower,y=flowered,color=patch,linetype = subplot)) +
+  geom_line()+
+  facet_wrap(~elevation,axes="all",axis.labels="all")+
+  theme_minimal()+
+  labs(x="Week of flowering",y="Number flowered",linetype="Competitors",color="Patch")+
+  theme(axis.title = element_text(size=15),
+        legend.text = element_text(size=12),legend.title = element_text(size=15),
+        strip.text = element_text(size=12))+
+  scale_color_manual(values=brewer.pal(11,"PuOr")[c(4,9)])+
+  scale_linetype_manual(limits=c("C","R"),labels=c("present","absent"),
+                        values=c("solid","dashed"))
+
+ggarrange(eplot,fplot,nrow=2,ncol=1)
+
 ### OLD ---------
-
-## trait distributions
-
-ggplot(ltraits,aes(x=SLA,color=patch,linetype = subplot))+
-  geom_freqpoly()
-ggplot(rtraits,aes(x=SRL,color=patch,linetype = subplot))+
-  geom_freqpoly()
-ggplot(traits,aes(x=max.height,color=patch,linetype=subplot))+
-  geom_freqpoly()
 
 ## trait boxplots
 ggplot(ltraits,aes(x=patch,y=SLA,fill=subplot))+
-  geom_boxplot()
+  geom_violin()
 
 # Elevation & environment
 
