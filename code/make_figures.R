@@ -25,8 +25,9 @@ ftraits$flower <- as.numeric(strftime(ftraits$flower, format = "%V"))
 ## Fig 1
 # multi-panel pictures of experimental setup
 
-## Fig 2 
-# fixed effects: germination rates & biomass (see drawing)
+##### Fig 2 --------------
+
+# fixed effects: germination rates & biomass
 get.coeff <- function(mod){
   modfe <- fixef(mod)
   modfe <- modfe[-1]
@@ -58,7 +59,7 @@ germ.plot <-ggplot(coeffs[which(coeffs$vital.rate=="Germination"),],aes(x=modfe,
   geom_vline(xintercept=0,lty="dashed",alpha=0.5)+
   scale_y_discrete(limits=c("nb.number:patchshrub","elevationlow:nb.number",
                             "nb.number","patchshrub","elevationlow"),
-                   labels=c("Neighbors x Patch","Neighbors x Elevation",
+                   labels=c("Neighbors x Patch (shrub)","Neighbors x Elevation (low)",
                             "Number of neighbors","Patch (shrub)","Elevation (low)"))+
   theme(axis.title.y=element_blank(),axis.text.y = element_text(size=12,color="black"))+
   labs(x="Model estimate",title="Germination")+
@@ -78,8 +79,8 @@ biomass.plot <- ggplot(coeffs[which(coeffs$vital.rate=="Biomass"),],aes(x=modfe,
   geom_vline(xintercept=0,lty="dashed",alpha=0.5)+
   scale_y_discrete(limits=c("patchshrub:n.het.nb","n.het.nb:elevationlow","n.con.nb:patchshrub",
   "n.con.nb:elevationlow","n.het.nb","n.con.nb","patchshrub","elevationlow"),
-                   labels=c("Heterospecific neighbors x Patch","Heterospecific neighbors x Elevation",
-                            "Conspecific neighbors x Patch","Conspecific neighbors x Elevation",
+                   labels=c("Heterospecific neighbors x Patch (shrub)","Heterospecific neighbors x Elevation (low)",
+                            "Conspecific neighbors x Patch (shrub)","Conspecific neighbors x Elevation (low)",
                             "Heterospecific neighbors","Conspecific neighbors",
                             "Patch (shrub)","Elevation (low)"))+
   theme(axis.title.y=element_blank(),axis.text.y = element_text(size=12,color="black"))+
@@ -97,9 +98,9 @@ biomass.plot <- ggplot(coeffs[which(coeffs$vital.rate=="Biomass"),],aes(x=modfe,
 
 ggarrange(germ.plot,biomass.plot,widths = c(0.7,1))
 
-## Fig 3
-# biomass reveals stress gradient hypothesis
-# effect of conspecifics in low (favorable) vs. high (stressful) elevation
+#### Fig 3 -----------------
+
+# effect of neighbors in low (favorable) vs. high (stressful) elevation
 
 # formatting
 biomass <- data[!is.na(data$aboveground_mass),]
@@ -123,43 +124,47 @@ nb.plot <- ggplot(biomass,aes(x=Neighbor_number,y=log(aboveground_mass),color=el
         legend.text = element_text(size=12))
 nb.plot
 
-## Fig 4
+##### Fig 4 ----------------
+
 # trait shifts in low vs. high and open vs. shrub
 
-lstats <- ltraits %>% group_by(patch) %>% summarize(mean = mean(SLA),min = min(SLA),max = max(SLA),trait = "SLA")
-rstats <- rtraits %>% group_by(patch) %>% summarize(mean = mean(SRL),min = min(SRL),max = max(SRL),trait = "SRL")
-hstats <- htraits %>% group_by(patch) %>% summarize(mean = mean(max.height),min = min(max.height),max = max(max.height),trait = "height")
-trait.stats <- rbind(lstats,rstats,hstats)
+lsum <- ltraits[,c("patch","elevation","SLA")]
+lsum <- rename(lsum, "value"="SLA")
+lsum$trait <- "SLA"
+rsum <- rtraits[,c("patch","elevation","SRL")]
+rsum <- rename(rsum, "value"="SRL")
+rsum$trait <- "SRL"
+hsum <- htraits[,c("patch","elevation","max.height")]
+hsum <- rename(hsum, "value"="max.height")
+hsum$trait <- "height"
 
-lstatse <- ltraits %>% group_by(elevation) %>% summarize(mean = mean(SLA),min = min(SLA),max = max(SLA),trait = "SLA")
-rstatse <- rtraits %>% group_by(elevation) %>% summarize(mean = mean(SRL),min = min(SRL),max = max(SRL),trait = "SRL")
-hstatse <- htraits %>% group_by(elevation) %>% summarize(mean = mean(max.height),min = min(max.height),max = max(max.height),trait = "height")
-trait.statse <- rbind(lstatse,rstatse,hstatse)
+trait.sum <- rbind(lsum,rsum,hsum)
+trait.sum$elevation <- factor(trait.sum$elevation, levels = c("low","high"))
 
-patch.stats <- ggplot(trait.stats,aes(x=patch,y=log(mean),color=trait)) +
-  geom_pointrange(aes(ymin=log(min),ymax=log(max)))+
-  annotate("segment",x=trait.stats$patch[1],xend=trait.stats$patch[2],y=log(trait.stats$mean)[1],yend=log(trait.stats$mean)[2], linetype="dashed",color="#B35806")+
-  annotate("segment",x=trait.stats$patch[3],xend=trait.stats$patch[4],y=log(trait.stats$mean)[3],yend=log(trait.stats$mean)[4],color="#B2ABD2")+
-  annotate("segment",x=trait.stats$patch[5],xend=trait.stats$patch[6],y=log(trait.stats$mean)[5],yend=log(trait.stats$mean)[6],color="#542788")+
-  scale_color_manual(limits=c("SLA","SRL","height"),values=brewer.pal(11,"PuOr")[c(2,8,10)])+
+trait.patch <- ggplot(trait.sum, aes(x=patch,y=log(value),fill=trait))+
+  geom_violin(position = position_dodge(width=0.2))+
   theme_minimal()+
-  labs(x="Patch",color="Trait",title="Mean trait differences across environmental conditions")+
-  theme(legend.position = "none",axis.text = element_text(size=12),axis.title = element_text(size=15),legend.title = element_text(size=15))
-
-ele.stats <- ggplot(trait.statse,aes(x=elevation,y=log(mean),color=trait)) +
-  geom_pointrange(aes(ymin=log(min),ymax=log(max)))+
-  annotate("segment",x=trait.statse$elevation[1],xend=trait.statse$elevation[2],y=log(trait.statse$mean)[1],yend=log(trait.statse$mean)[2],color="#B35806")+
-  annotate("segment",x=trait.statse$elevation[3],xend=trait.statse$elevation[4],y=log(trait.statse$mean)[3],yend=log(trait.statse$mean)[4],color="#B2ABD2")+
-  annotate("segment",x=trait.statse$elevation[5],xend=trait.statse$elevation[6],y=log(trait.statse$mean)[5],yend=log(trait.statse$mean)[6],color="#542788")+
-  scale_color_manual(limits=c("SLA","SRL","height"),values=brewer.pal(11,"PuOr")[c(2,8,10)])+
+  scale_fill_manual(limits=c("SRL","SLA","height"),values=brewer.pal(11,"PuOr")[c(2,8,10)])+
+  annotate("text",label="*",x=1.5,y=1,size=12)+
+  annotate("text",label="*",x=1.5,y=9.5,size=12)+
+  labs(x="Patch",y="log (Value)",fill="Trait")+
+  theme(axis.text=element_text(size=12),axis.title = element_text(size=15),legend.position="none")
+trait.elev <- ggplot(trait.sum, aes(x=elevation,y=log(value),fill=trait))+
+  geom_violin(position = position_dodge(width=0.2))+
   theme_minimal()+
-  labs(x="Elevation",color="Trait",title= " ")+
-  theme(axis.title.y=element_blank(),axis.text = element_text(size=12),legend.text = element_text(size=12),
-        axis.title = element_text(size=15),legend.title = element_text(size=15))
+  scale_fill_manual(limits=c("SRL","SLA","height"),values=brewer.pal(11,"PuOr")[c(2,8,10)])+
+  annotate("text",label="*",x=1.5,y=1,size=12)+
+  annotate("text",label="*",x=1.5,y=5,size=12)+
+  annotate("text",label="*",x=1.5,y=9.5,size=12)+
+  labs(x="Elevation",y="log (Value)",fill="Trait")+
+  theme(axis.text.x=element_text(size=12),axis.title.x = element_text(size=15),axis.text.y=element_blank(),
+        axis.title.y=element_blank(),legend.title = element_text(size=15),
+        legend.text = element_text(size=12))
 
-ggarrange(patch.stats,ele.stats,widths = c(0.7,1))
+ggarrange(trait.patch,trait.elev,widths=c(0.8,1))
 
-# Fig 5
+#### Fig 5 -----------------
+
 # scatterplot for number of neighbors x continuous trait variables
 format.traits <- function(trait.data,col,name){
   d <- trait.data[,c(name,"n.het.nb","n.con.nb")]
@@ -189,7 +194,7 @@ ggplot(trait.nb,aes(x=n.nb,y=value,color=trait,shape=Neighbors))+
   theme(axis.title = element_text(size=15),axis.text = element_text(size=12),legend.title = element_text(size=15),
         legend.text = element_text(size=12))
 
-## phenology distributions? supp figures?
+##### Supplemental figures --------------
 
 ecount <- etraits %>% group_by(patch,elevation,subplot,emergence) %>% summarize(emerged = n())
 fcount <- ftraits %>% group_by(patch,elevation,subplot,flower) %>% summarise(flowered=n())
@@ -218,12 +223,6 @@ fplot <- ggplot(fcount,aes(x=flower,y=flowered,color=patch,linetype = subplot)) 
                         values=c("solid","dashed"))
 
 ggarrange(eplot,fplot,nrow=2,ncol=1)
-
-### OLD ---------
-
-## trait boxplots
-ggplot(ltraits,aes(x=patch,y=SLA,fill=subplot))+
-  geom_violin()
 
 # Elevation & environment
 

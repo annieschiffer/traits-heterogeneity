@@ -92,6 +92,8 @@ nb2025$planted.number[is.na(nb2025$planted.number)] <- 0
 remove <- which(nb2025$planted.number==1 & nb2025$n.con.nb==0 &nb2025$n.het.nb==0)
 nb2025 <- nb2025[-remove,]
 
+#write.csv(nb2025,"./../clean_data/planted.natural.neighbors.csv",row.names=FALSE)
+
 # add neighbors and planted ones together
 nb2025$mass.con.nb <- nb2025$planted.mass + nb2025$mass.con.nb
 nb2025$n.con.nb <- nb2025$planted.number + nb2025$n.con.nb
