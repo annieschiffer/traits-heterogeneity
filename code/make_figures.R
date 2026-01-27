@@ -22,9 +22,6 @@ etraits$emergence <- as.numeric(strftime(etraits$emergence, format = "%V"))
 ftraits <- data[-which(is.na(data$flower)),]
 ftraits$flower <- as.numeric(strftime(ftraits$flower, format = "%V"))
 
-## Fig 1
-# multi-panel pictures of experimental setup
-
 ##### Fig 2 --------------
 
 # fixed effects: germination rates & biomass
@@ -32,18 +29,18 @@ get.coeff <- function(mod){
   modfe <- fixef(mod)
   modfe <- modfe[-1]
   modfe <- unname(modfe)
-  modci <- confint(mod, level=0.95)
-  if(class(mod)=="glmerMod"){modconf<-as.data.frame(modci[-c(1,2),])}else{modconf<-as.data.frame(modci[-c(1:3),])}
-  modconf$coeff <- row.names(modconf)
-  rownames(modconf) <- NULL
-  modcoeff <- cbind(modfe,modconf)
+  se_fixed <- sqrt(diag(vcov(mod)))
+  se_fixed <- se_fixed[-1]
+  modcoeff <- as.data.frame(cbind(modfe,se_fixed))
+  modcoeff$coeff <- rownames(modcoeff)
+  rownames(modcoeff) <- NULL
   return(modcoeff)
 }
 germcoeff <- get.coeff(germ)
 masscoeff <- get.coeff(mass)
-
 germcoeff$vital.rate <- "Germination"
 masscoeff$vital.rate <- "Biomass"
+
 coeffs <- rbind(germcoeff,masscoeff)
 
 rect_data1 <- data.frame(xmin = -Inf, xmax = Inf,ymin = 3.75, ymax = 5.5)
@@ -54,7 +51,7 @@ rect_data5 <- data.frame(xmin = -Inf, xmax = Inf,ymin = 4.3, ymax = 6.5)
 rect_data6 <- data.frame(xmin = -Inf, xmax = Inf,ymin = 0.5, ymax = 4.3)
 
 germ.plot <-ggplot(coeffs[which(coeffs$vital.rate=="Germination"),],aes(x=modfe,y=coeff))+
-  geom_pointrange(aes(xmin=`2.5 %`,xmax=`97.5 %`))+
+  geom_pointrange(aes(xmin=modfe-se_fixed,xmax=modfe+se_fixed))+
   theme_minimal()+
   geom_vline(xintercept=0,lty="dashed",alpha=0.5)+
   scale_y_discrete(limits=c("nb.number:patchshrub","elevationlow:nb.number",
@@ -74,13 +71,13 @@ germ.plot <-ggplot(coeffs[which(coeffs$vital.rate=="Germination"),],aes(x=modfe,
   annotate("text",x=3.5,y=1.4,label="Interaction",angle=270)
 
 biomass.plot <- ggplot(coeffs[which(coeffs$vital.rate=="Biomass"),],aes(x=modfe,y=coeff))+
-  geom_pointrange(aes(xmin=`2.5 %`,xmax=`97.5 %`))+
+  geom_pointrange(aes(xmin=modfe-se_fixed,xmax=modfe+se_fixed))+
   theme_minimal()+
   geom_vline(xintercept=0,lty="dashed",alpha=0.5)+
   scale_y_discrete(limits=c("patchshrub:n.het.nb","n.het.nb:elevationlow","n.con.nb:patchshrub",
   "n.con.nb:elevationlow","n.het.nb","n.con.nb","patchshrub","elevationlow"),
-                   labels=c("Heterospecific neighbors x Patch (shrub)","Heterospecific neighbors x Elevation (low)",
-                            "Conspecific neighbors x Patch (shrub)","Conspecific neighbors x Elevation (low)",
+                   labels=c("Heterospecific x Patch (shrub)","Heterospecific x Elevation (low)",
+                            "Conspecific x Patch (shrub)","Conspecific x Elevation (low)",
                             "Heterospecific neighbors","Conspecific neighbors",
                             "Patch (shrub)","Elevation (low)"))+
   theme(axis.title.y=element_blank(),axis.text.y = element_text(size=12,color="black"))+
@@ -96,7 +93,7 @@ biomass.plot <- ggplot(coeffs[which(coeffs$vital.rate=="Biomass"),],aes(x=modfe,
   annotate("text",x=8.75,y=5.35,label="Competition",angle=270)+
   annotate("text",x=8.75,y=2.4,label="Interaction",angle=270)
 
-ggarrange(germ.plot,biomass.plot,widths = c(0.7,1))
+vital.rates <- ggarrange(germ.plot,biomass.plot,widths = c(0.7,1))
 
 #### Fig 3 -----------------
 
@@ -122,7 +119,6 @@ nb.plot <- ggplot(biomass,aes(x=Neighbor_number,y=log(aboveground_mass),color=el
   scale_color_manual(limits=c("high","low"),values=brewer.pal(11,"PuOr")[c(9,3)])+
   theme(axis.title = element_text(size=15),axis.text = element_text(size=12),legend.title = element_text(size=15),
         legend.text = element_text(size=12))
-nb.plot
 
 ##### Fig 4 ----------------
 
@@ -146,9 +142,9 @@ trait.patch <- ggplot(trait.sum, aes(x=patch,y=log(value),fill=trait))+
   theme_minimal()+
   scale_fill_manual(limits=c("SRL","SLA","height"),values=brewer.pal(11,"PuOr")[c(2,8,10)])+
   annotate("text",label="*",x=1.5,y=1,size=12)+
-  annotate("text",label="*",x=1.5,y=9.5,size=12)+
-  labs(x="Patch",y="log (Value)",fill="Trait")+
-  theme(axis.text=element_text(size=12),axis.title = element_text(size=15),legend.position="none")
+  labs(title = "Trait shifts across patches and elevation",x="Patch",y="log (Value)",fill="Trait")+
+  theme(axis.text=element_text(size=12),axis.title = element_text(size=15),legend.position="none",
+        title = element_text(size=15))
 trait.elev <- ggplot(trait.sum, aes(x=elevation,y=log(value),fill=trait))+
   geom_violin(position = position_dodge(width=0.2))+
   theme_minimal()+
@@ -156,12 +152,12 @@ trait.elev <- ggplot(trait.sum, aes(x=elevation,y=log(value),fill=trait))+
   annotate("text",label="*",x=1.5,y=1,size=12)+
   annotate("text",label="*",x=1.5,y=5,size=12)+
   annotate("text",label="*",x=1.5,y=9.5,size=12)+
-  labs(x="Elevation",y="log (Value)",fill="Trait")+
+  labs(title = " ",x="Elevation",y="log (Value)",fill="Trait")+
   theme(axis.text.x=element_text(size=12),axis.title.x = element_text(size=15),axis.text.y=element_blank(),
         axis.title.y=element_blank(),legend.title = element_text(size=15),
-        legend.text = element_text(size=12))
+        legend.text = element_text(size=12),title=element_text(size=15))
 
-ggarrange(trait.patch,trait.elev,widths=c(0.8,1))
+trait.shifts <- ggarrange(trait.patch,trait.elev,widths=c(0.8,1))
 
 #### Fig 5 -----------------
 
@@ -182,7 +178,7 @@ hnb <- format.traits(htraits,htraits$max.height,"max.height")
 trait.nb <- rbind(lnb,rnb,hnb)
 trait.nb <- pivot_longer(trait.nb,cols=c("n.het.nb","n.con.nb"),names_to = "Neighbors",values_to = "n.nb")
 
-ggplot(trait.nb,aes(x=n.nb,y=value,color=trait,shape=Neighbors))+
+trait.nb <- ggplot(trait.nb,aes(x=n.nb,y=value,color=trait,shape=Neighbors))+
   geom_point(alpha=0.4)+
   geom_smooth(method="lm",aes(lty=Neighbors),se=FALSE)+
   scale_color_manual(limits=c("SLA","SRL","max.height"),values=c(brewer.pal(11,"PuOr")[c(2,8,10)]),
@@ -193,6 +189,14 @@ ggplot(trait.nb,aes(x=n.nb,y=value,color=trait,shape=Neighbors))+
   theme_classic()+
   theme(axis.title = element_text(size=15),axis.text = element_text(size=12),legend.title = element_text(size=15),
         legend.text = element_text(size=12))
+
+# save output
+if(!dir.exists(paste0("./../results/", Sys.Date(),"/"))) dir.create(paste0("./../results/", Sys.Date(),"/"))
+ggsave(vital.rates,file = paste0("./../results/", Sys.Date(),"/vital_estimates.jpeg"),height = 4,width = 10)
+ggsave(nb.plot,file = paste0("./../results/",Sys.Date(),"/SGH_plot.jpeg"),height = 5,width = 6)
+ggsave(trait.shifts, file = paste0("./../results/",Sys.Date(),"/trait_shifts.jpeg"),height=5,width=8)
+ggsave(trait.nb,file=paste0("./../results/",Sys.Date(),"/traits_neighbors.jpeg"),height=5,width=6)
+
 
 ##### Supplemental figures --------------
 
@@ -226,16 +230,16 @@ ggarrange(eplot,fplot,nrow=2,ncol=1)
 
 # Elevation & environment
 
-ggplot(data,aes(x=as.factor(year),y=mean.season.VWC,fill=as.factor(elevation)))+
-  geom_boxplot()
-ggplot(data,aes(x=as.factor(year),y=min.season.VWC,fill=as.factor(elevation)))+
-  geom_boxplot()
-ggplot(data,aes(x=as.factor(year),y=max.season.VWC,fill=as.factor(elevation)))+
-  geom_boxplot()
-
-ggplot(data,aes(x=as.factor(elevation),y=mean.season.temp))+
-  geom_boxplot()
-ggplot(data,aes(x=as.factor(elevation),y=min.season.temp))+
-  geom_boxplot()
-ggplot(data,aes(x=as.factor(elevation),y=max.season.temp))+
-  geom_boxplot()
+# ggplot(data,aes(x=as.factor(year),y=mean.season.VWC,fill=as.factor(elevation)))+
+#   geom_boxplot()
+# ggplot(data,aes(x=as.factor(year),y=min.season.VWC,fill=as.factor(elevation)))+
+#   geom_boxplot()
+# ggplot(data,aes(x=as.factor(year),y=max.season.VWC,fill=as.factor(elevation)))+
+#   geom_boxplot()
+# 
+# ggplot(data,aes(x=as.factor(elevation),y=mean.season.temp))+
+#   geom_boxplot()
+# ggplot(data,aes(x=as.factor(elevation),y=min.season.temp))+
+#   geom_boxplot()
+# ggplot(data,aes(x=as.factor(elevation),y=max.season.temp))+
+#   geom_boxplot()

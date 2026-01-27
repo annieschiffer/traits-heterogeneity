@@ -26,7 +26,7 @@ never.germinated <- never.germinated %>% mutate(emergence = NA,
                                                 total_leaf_area=NA,
                                                 total_leaf_mass=NA,
                                                 year="2024")
-data2024 <- rbind(traits2024,never.germinated)
+data2024 <- rbind(traits2024,never.germinated) # no duplicates
 data2024 <- data2024 %>% mutate(germination=case_when(is.na(emergence)==TRUE ~ 0,
                                                       is.na(emergence)==FALSE ~ 1))
 
@@ -35,7 +35,7 @@ n.germ24 <- data2024 %>% group_by(species) %>% summarize(n.germ=sum(germination)
                                                          n.total=n())
 n.germ24$germ.rate <- n.germ24$n.germ/n.germ24$n.total * 100
 
-data2024 <- merge(data2024,n.germ24,by="species",all.x=TRUE)
+data2024 <- merge(data2024,n.germ24,by="species",all.x=TRUE) # no duplicates
 
 # computing fitness based on aboveground mass and germination rate
 data2024$fitness <- data2024$aboveground_mass * data2024$germ.rate
@@ -57,7 +57,7 @@ tst <- tst %>% mutate(elevation=case_when(site=="low_gate" ~ "low",
                                           site=="high_gate" ~ "high",
                                           site=="high_east" ~ "high",
                                           site=="high_north" ~ "high"))
-
+# merge (checked, no duplicates)
 data2025 <- merge(tst,traits2025,by=c("site","shrub","patch","subplot","id","year","species","elevation"),all.x = TRUE)
 data2025 <- data2025 %>% mutate(germination=case_when(is.na(emergence)==TRUE ~ 0,
                                                       is.na(emergence)==FALSE ~ 1))

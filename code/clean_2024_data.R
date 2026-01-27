@@ -72,6 +72,8 @@ phenology <- phenology %>% mutate(elevation=case_when(site=="low_gate" ~ "low",
 phenology$emergence<-as.Date(phenology$emergence,format="%m/%d/%Y")
 phenology$flower<-as.Date(phenology$flower,format="%m/%d/%Y")
 phenology$fruit<-as.Date(phenology$fruit,format="%m/%d/%Y")
+# removing any duplicates
+#phenology <- phenology[-which(duplicated(phenology[,c(1:6)])),] # no duplicates
 
 # merge everything together
 aboveground.biomass <- traits.list[[1]]
@@ -79,6 +81,13 @@ root.length <- traits.list[[2]]
 root.mass <- traits.list[[3]]
 fecundity <- traits.list[[4]]
 leaves<-traits.list[[5]]
+
+# remove accidental duplicates
+aboveground.biomass <- aboveground.biomass[-which(duplicated(aboveground.biomass[,c(1:6)])),]
+root.length <- root.length[-which(duplicated(root.length[,c(1:6)])),]
+#root.mass <- root.mass[-which(duplicated(root.mass[,c(1:6)]))] # none duplicated
+fecundity <- fecundity[-which(duplicated(fecundity[,c(1:6)])),]
+leaves <- leaves[-which(duplicated(leaves[,c(1:6)])),]
 
 traits2024 <- merge(aboveground.biomass,root.length,all.x = TRUE,by=c("site","shrub","patch","subplot","species","id","elevation"))
 traits2024 <- merge(traits2024,root.mass,all.x = TRUE,by=c("site","shrub","patch","subplot","species","id","elevation"))

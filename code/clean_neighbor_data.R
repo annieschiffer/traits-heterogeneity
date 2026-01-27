@@ -52,20 +52,23 @@ nb.count<- pivot_wider(nb.count,names_from = species,values_from = n.nb)
 nb.count[is.na(nb.count)] <-0
 nb.count$n.het.nb <- nb.count$COPA + nb.count$ALDE + nb.count$PODO
 nb.count$n.con.nb <- nb.count$BRTE
-nb.count <- nb.count[,-c(4:7)]
+nb.count <- nb.count[,-c(4:7)] # no duplicates
 
 nb.mass <- pivot_wider(all.mass,names_from = species,values_from = n.mass)
 nb.mass[is.na(nb.mass)] <- 0
 nb.mass$mass.het.nb <- nb.mass$COPA + nb.mass$ALDE + nb.mass$PODO
 nb.mass$mass.con.nb <- nb.mass$BRTE
 nb.mass <- nb.mass[,-c(4:8)]
+# create one line for each neighborhood
+nb.mass <- nb.mass %>% group_by(site,shrub,patch) %>% summarize(mass.het.nb = sum(mass.het.nb),
+                                                                mass.con.nb = sum(mass.con.nb))
 
 # merge mass and number
-nb2024 <- merge(nb.mass,nb.count,by=c("site","shrub","patch"),all=TRUE)
-nb2024 <- nb2024[-14,]
+nb2024 <- merge(nb.mass,nb.count,by=c("site","shrub","patch"),all=TRUE) # no duplicates
+nb2024 <- na.omit(nb2024)
 nb2024$year <- "2024"
 
-rm(nb,all.mass,mass.num,remove,add.n.nb,nb.mass)
+rm(nb,all.mass,mass.num,remove,add.n.nb,nb.mass, nb.count)
 
 # 2025 data
 
@@ -102,6 +105,6 @@ nb2025 <- nb2025[,c(1,2,3,6,7,4,5)]
 nb2025$year <- "2025"
 
 # bind 2024 and 2025 data together
-neighbors <- rbind(nb2024,nb2025)
+neighbors <- rbind(nb2024,nb2025) # no duplicates
 
 rm(planted.mass,n25,nb2024,nb2025)

@@ -5,7 +5,7 @@
 traits2025<-read.csv("./../raw_data/2025/traits.csv")
 traits2025<- traits2025[1:114,]
 root25 <- read.csv("./../raw_data/2025/root_sa25.csv")
-traits2025 <- merge(traits2025,root25,all.x=TRUE,by.x="label",by.y="ID")
+traits2025 <- merge(traits2025,root25,all.x=TRUE,by.x="label",by.y="ID") # checked, no duplicates
 supp2025 <- traits2025[grep("supp",traits2025$label),]
 traits2025 <- traits2025[-grep("supp",traits2025$label),]
 
@@ -30,7 +30,7 @@ traits2025 <- traits2025 %>% mutate(elevation=case_when(site=="low_gate" ~ "low"
                                                         site=="high_gate" ~ "high",
                                                         site=="high_east" ~ "high",
                                                         site=="high_north" ~ "high"))
-traits2025$species <- "BRTE"
+traits2025$species <- "BRTE" 
 
 # import and clean up phenology data
 weekly25<-read.csv("./../raw_data/2025/weekly.csv")
@@ -49,7 +49,7 @@ fruit <- weekly.germ[which(weekly.germ$phenophase > 3),]
 fruit <- fruit %>% group_by(site,shrub,patch,subplot,species,id) %>% summarise(fruit = min(date))
 
 # merging phenology data together
-phenology<- merge(emergence,flower,by=c("site","shrub","patch","subplot","species","id"),all.x=TRUE)
+phenology<- merge(emergence,flower,by=c("site","shrub","patch","subplot","species","id"),all.x=TRUE) # checked, no duplicates
 phenology<- merge(phenology,fruit,by=c("site","shrub","patch","subplot","species","id"),all.x=TRUE)
 phenology <- phenology %>% mutate(elevation=case_when(site=="low_gate" ~ "low",
                                                       site=="low_north" ~ "low",
@@ -61,7 +61,7 @@ phenology$emergence<-as.Date(phenology$emergence,format="%m/%d/%y")
 phenology$flower<-as.Date(phenology$flower,format="%m/%d/%y")
 phenology$fruit<-as.Date(phenology$fruit,format="%m/%d/%y")
 
-# merging phenology and trait data
+# merging phenology and trait data - checked, no duplicates
 traits2025 <- merge(phenology,traits2025,by=c("site","shrub","patch","subplot","species","id","elevation"),all.x = TRUE)
 traits2025$year <- 2025
 
