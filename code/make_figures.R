@@ -108,18 +108,22 @@ biomass <- pivot_longer(biomass,cols = c("n.het.nb","n.con.nb"),names_to = "Neig
                         values_to = "Neighbor_number")
 
 # all neighbors together
-nb.plot <- ggplot(biomass,aes(x=Neighbor_number,y=log(aboveground_mass),color=elevation,shape=Neighbors))+
+biomass$elev.nb <- paste0(biomass$elevation,"-",biomass$Neighbors)
+nb.plot <- ggplot(biomass,aes(x=Neighbor_number,y=log(aboveground_mass),color=elev.nb,linetype=Neighbors))+
   geom_point(alpha=0.4)+
-  geom_smooth(method="lm",aes(lty=Neighbors),se=FALSE)+
-  labs(x="Number of neighbors",y="log(biomass)",color="Elevation",title=
+  geom_smooth(method="lm",se=FALSE)+
+  labs(x="Number of neighbors",y="log(biomass)",color="Neighborhood",title=
          "Effect of neighbors on aboveground biomass")+
-  scale_shape_discrete(limits=c("n.con.nb","n.het.nb"),labels=c("conspecific","heterospecific"))+
-  scale_linetype_discrete(limits=c("n.con.nb","n.het.nb"),labels=c("conspecific","heterospecific"))+
+  scale_shape_discrete(limits=c("high-n.het.nb","high-n.con.nb","low-n.het.nb","low-n.con.nb"),
+                       labels=c("high, heterospecific","high, conspecific","low, heterspecific","low, conspecific"))+
+  scale_linetype_discrete(limits=c("n.con.nb","n.het.nb"),guide="none")+
   theme_classic()+
-  scale_color_manual(limits=c("high","low"),values=brewer.pal(11,"PuOr")[c(9,3)])+
+  scale_color_manual(limits=c("high-n.het.nb","high-n.con.nb","low-n.het.nb","low-n.con.nb"),
+                     values=brewer.pal(11,"PuOr")[c(9,10,3,2)],
+                     labels=c("high, heterospecific","high, conspecific","low, heterspecific","low, conspecific"))+
   theme(axis.title = element_text(size=15),axis.text = element_text(size=12),legend.title = element_text(size=15),
         legend.text = element_text(size=12))
-
+nb.plot
 ##### Fig 4 ----------------
 
 # trait shifts in low vs. high and open vs. shrub
@@ -176,26 +180,29 @@ rnb <- format.traits(rtraits,rtraits$SRL,"SRL")
 hnb <- format.traits(htraits,htraits$max.height,"max.height")
 
 trait.nb <- rbind(lnb,rnb,hnb)
-trait.nb <- pivot_longer(trait.nb,cols=c("n.het.nb","n.con.nb"),names_to = "Neighbors",values_to = "n.nb")
+htraits <- pivot_longer(htraits,cols=c("n.het.nb","n.con.nb"),names_to = "Neighbors",values_to = "n.nb")
 
-trait.nb <- ggplot(trait.nb,aes(x=n.nb,y=value,color=trait,shape=Neighbors))+
+trait.nb.plot <- ggplot(htraits,aes(x=n.nb,y=max.height,color=Neighbors,linetype=Neighbors))+
   geom_point(alpha=0.4)+
-  geom_smooth(method="lm",aes(lty=Neighbors),se=FALSE)+
-  scale_color_manual(limits=c("SLA","SRL","max.height"),values=c(brewer.pal(11,"PuOr")[c(2,8,10)]),
-                     labels=c("SLA","SRL","height"))+
-  labs(x="Number of neighbors",y="Scaled trait value",color="Trait",title="Effect of neighbors on traits")+
-  scale_shape_discrete(limits=c("n.con.nb","n.het.nb"),labels=c("conspecific","heterospecific"))+
-  scale_linetype_discrete(limits=c("n.con.nb","n.het.nb"),labels=c("conspecific","heterospecific"))+
+  geom_smooth(method="lm",se=FALSE)+
+  scale_color_manual(limits=c("n.het.nb","n.con.nb"),values=c(brewer.pal(11,"PuOr")[c(3,11)]),
+                     labels=c("heterospecific","conspecific"))+
+  labs(x="Number of neighbors",y="Maximum height (cm)",
+       title="Effect of neighbors on maximum height")+
+  #scale_shape_discrete(limits=c("n.con.nb","n.het.nb"),labels=c("conspecific","heterospecific"))+
+  scale_linetype_discrete(limits=c("n.con.nb","n.het.nb"),labels=c("conspecific","heterospecific"),
+                          guide="none")+
   theme_classic()+
-  theme(axis.title = element_text(size=15),axis.text = element_text(size=12),legend.title = element_text(size=15),
+  theme(axis.title = element_text(size=15),axis.text = element_text(size=12),legend.title = element_blank(),
         legend.text = element_text(size=12))
+trait.nb.plot
 
 # save output
 if(!dir.exists(paste0("./../results/", Sys.Date(),"/"))) dir.create(paste0("./../results/", Sys.Date(),"/"))
 ggsave(vital.rates,file = paste0("./../results/", Sys.Date(),"/vital_estimates.jpeg"),height = 4,width = 10)
 ggsave(nb.plot,file = paste0("./../results/",Sys.Date(),"/SGH_plot.jpeg"),height = 5,width = 6)
 ggsave(trait.shifts, file = paste0("./../results/",Sys.Date(),"/trait_shifts.jpeg"),height=5,width=8)
-ggsave(trait.nb,file=paste0("./../results/",Sys.Date(),"/traits_neighbors.jpeg"),height=5,width=6)
+ggsave(trait.nb.plot,file=paste0("./../results/",Sys.Date(),"/traits_neighbors.jpeg"),height=5,width=6)
 
 
 ##### Supplemental figures --------------
@@ -229,6 +236,28 @@ fplot <- ggplot(fcount,aes(x=flower,y=flowered,color=patch,linetype = subplot)) 
 ggarrange(eplot,fplot,nrow=2,ncol=1)
 
 # Elevation & environment
+
+# calculate moisture differences
+low.sm <- mean(data$mean.season.VWC[data$elevation=="low"]) 
+high.sm <- mean(data$mean.season.VWC[data$elevation=="high"])
+open.sm <- mean(data$mean.season.VWC[data$patch=="open"]) 
+shrub.sm <- mean(data$mean.season.VWC[data$patch=="shrub"])
+
+# calculate snowmelt date differences
+spring.temps <- soil.temp[(soil.temp$date > "2024-03-01" & soil.temp$date < "2024-04-10") |
+                         (soil.temp$date > "2025-03-01" & soil.temp$date < "2025-04-10"),]
+snow.present <- spring.temps[which(spring.temps$temp < 35 & spring.temps$temp > 28),]
+snow.absent <- spring.temps[-which(spring.temps$temp < 35 & spring.temps$temp > 28),]
+
+hist(snow.absent$date[snow.absent$site=="low_north" & snow.absent$year==2025],breaks="days")
+
+snowmelt.dates <- snow.absent %>% group_by(year,elevation,patch) %>% summarize(snowmelt = min(date))
+snowmelt.dates$snowmelt <- yday(snowmelt.dates$snowmelt)
+
+low.date <- mean(snowmelt.dates$snowmelt[snowmelt.dates$elevation=="low"])
+high.date <- mean(snowmelt.dates$snowmelt[snowmelt.dates$elevation=="high"])
+open.date <- mean(snowmelt.dates$snowmelt[snowmelt.dates$patch=="open"])
+shrub.date <- mean(snowmelt.dates$snowmelt[snowmelt.dates$patch=="shrub"])
 
 # ggplot(data,aes(x=as.factor(year),y=mean.season.VWC,fill=as.factor(elevation)))+
 #   geom_boxplot()

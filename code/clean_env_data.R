@@ -79,4 +79,4 @@ ST.anamolies <- soil.temp %>% group_by(year,season,site,patch) %>% summarize(mea
                                                                              min.season.temp = min(temp),
                                                                              max.season.temp = max(temp))
 
-rm(soil.moisture24,soil.moisture25,soil.moisture,soil.temp,s.temp)
+rm(soil.moisture24,soil.moisture25,soil.moisture,s.temp)
