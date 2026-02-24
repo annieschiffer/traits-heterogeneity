@@ -11,6 +11,7 @@ if (!require("ggpubr")) install.packages("ggpubr"); library(ggpubr)
 if (!require("RColorBrewer")) install.packages("RColorBrewer"); library(RColorBrewer)
 if (!require("DHARMa")) install.packages("DHARMa"); library(DHARMa)
 if (!require("lqmm")) install.packages("lqmm"); library(lqmm)
+if (!require("rstan")) install.packages("rstan"); library(rstan)
 
 # set working directory
 current_path <- getActiveDocumentContext()$path
