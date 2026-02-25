@@ -35,7 +35,7 @@ model {
 
 	// Normal sampling distribution
   for(i in 1:N){
-      y[i] ~ normal(mu[i],sigma);
+      y[i] ~ lognormal(mu[i],sigma);
   }
 	
 	// priors
@@ -57,123 +57,67 @@ rstan_options(auto_write = TRUE)
 data <- read.csv("./../clean_data/all_data_combined.csv")
 data <- data[data$species=="BRTE",]
 
-## SLA
+# create function
+format.trait <- function(trait,all.data){
+  if(trait=="SLA"){
+    # calculate SLA
+    tdata <- all.data[-which(is.na(all.data$total_leaf_area)),]
+    tdata$total_leaf_area <- tdata$total_leaf_area/100
+    tdata$focal.trait <- as.numeric(tdata$total_leaf_area)/as.numeric(tdata$total_leaf_mass)
+  }
+  if(trait=="SRL"){
+    # calculate SRL
+    tdata <- all.data[-which(is.na(all.data$length_cm)),]
+    tdata <- tdata[-which(is.na(tdata$root_mass)),]
+    tdata <- tdata[-which(tdata$root_mass==0),]
+    tdata$focal.trait <- as.numeric(tdata$length_cm)/as.numeric(tdata$root_mass)
+  }
+  if(trait=="max.height"){
+    tdata <- all.data[-which(is.na(all.data$max.height)),]
+    tdata <- tdata[-which(tdata$max.height==0),]
+    tdata$focal.trait <- tdata$max.height
+  }
+  # set up siteyear random effect & scaled predictors
+  tdata$siteyear <- paste0(tdata$year,tdata$site,tdata$shrub)
+  tdata$siteyear <- as.numeric(as.factor(tdata$siteyear))
+  tdata$elevation <- as.numeric(as.factor(tdata$elevation))
+  tdata$patch <- as.numeric(as.factor(tdata$patch))
+  tdata$n.con.nb <- as.numeric(scale(tdata$n.con.nb))
+  tdata$n.het.nb <- as.numeric(scale(tdata$n.het.nb))
+  
+  # run model for SLA
+  tmod.data <- list(N=dim(tdata)[1],
+                  Nsiteyear=length(unique(tdata$siteyear)),
+                  siteyear=tdata$siteyear,
+                  y=tdata$focal.trait,
+                  e=tdata$elevation,
+                  p=tdata$patch,
+                  cn=tdata$n.con.nb,
+                  hn=tdata$n.het.nb)
+  return(tmod.data)
+}
 
-# calculate SLA
-ldata <- data[-which(is.na(data$total_leaf_area)),]
-ldata$total_leaf_area <- ldata$total_leaf_area/100
-ldata$SLA <- as.numeric(ldata$total_leaf_area)/as.numeric(ldata$total_leaf_mass)
-
-# set up siteyear random effect & scaled predictors
-ldata$siteyear <- paste0(ldata$site,ldata$year)
-ldata$siteyear <- as.numeric(as.factor(ldata$siteyear))
-ldata$elevation <- as.numeric(as.factor(ldata$elevation))
-ldata$patch <- as.numeric(as.factor(ldata$patch))
-ldata$n.con.nb <- as.numeric(scale(ldata$n.con.nb))
-ldata$n.het.nb <- as.numeric(scale(ldata$n.het.nb))
-
-# run model for SLA
-sladata <- list(N=dim(ldata)[1],
-             Nsiteyear=length(unique(ldata$siteyear)),
-             siteyear=ldata$siteyear,
-             y=ldata$SLA,
-             e=ldata$elevation,
-             p=ldata$patch,
-             cn=ldata$n.con.nb,
-             hn=ldata$n.het.nb)
-
-SLA.fit <- stan(model_code = trait.mod,init=0,data=sladata)
+# fit SLA model
+sladata <- format.trait("SLA",data)
+SLA.fit <- stan(model_code = trait.mod,init=0,data=sladata,iter=12000,warmup=6000)
 summary(SLA.fit,pars=c("beta"))
 plot(SLA.fit,pars=c("beta"))
 
-# look at distribution of trait
-# hist(log(ltraits$SLA)) # log-normal
-# # model
-# lfit <- lmer(log(SLA) ~ n.het.nb + n.con.nb + patch + elevation + (1|siteyear),data=ltraits)
-# summary(lfit)
-# res <- simulateResiduals(lfit)
-base::plot(res) # residuals good enough
-# positive effect of low elevation
-# negative effect of heterospecifics
-# positive effect of conspecifics
-
-
-## SRL
-
-# calculate SRL
-rdata <- data[-which(is.na(data$length_cm)),]
-rdata <- rdata[-which(is.na(rdata$root_mass)),]
-rdata <- rdata[-which(rdata$root_mass==0),]
-rdata$SRL <- as.numeric(rdata$length_cm)/as.numeric(rdata$root_mass)
-
-# set up siteyear random effect & scaled predictors
-rdata$siteyear <- paste0(rdata$site,rdata$year)
-rdata$siteyear <- as.numeric(as.factor(rdata$siteyear))
-rdata$elevation <- as.numeric(as.factor(rdata$elevation))
-rdata$patch <- as.numeric(as.factor(rdata$patch))
-rdata$n.con.nb <- as.numeric(scale(rdata$n.con.nb))
-rdata$n.het.nb <- as.numeric(scale(rdata$n.het.nb))
-
-# run model for SRL
-srldata <- list(N=dim(rdata)[1],
-                Nsiteyear=length(unique(rdata$siteyear)),
-                siteyear=rdata$siteyear,
-                y=rdata$SRL,
-                e=rdata$elevation,
-                p=rdata$patch,
-                cn=rdata$n.con.nb,
-                hn=rdata$n.het.nb)
-
-SRL.fit <- stan(model_code = trait.mod,init=0,data=srldata)
+# fit SRL model
+srldata <- format.trait("SRL",data)
+SRL.fit <- stan(model_code = trait.mod,init=0,data=srldata,iter=12000,warmup=6000)
 summary(SRL.fit,pars=c("beta"))
 plot(SRL.fit,pars=c("beta"))
 
-# look at distribution of trait
-# hist(log(rtraits$SRL)) # log-normal
-# # fit model
-# rfit <- lmer(log(SRL) ~ n.het.nb + n.con.nb + patch + elevation + (1|siteyear),data=rtraits)
-# summary(rfit)
-# res <- simulateResiduals(rfit)
-# base::plot(res) # residuals good
-# positive effect of conspecifics
-# positive effect of shrub
-# negative effect of low elevation
-
-
-## height
-
-hdata <- data[-which(is.na(data$max.height)),]
-hdata <- hdata[-which(hdata$max.height==0),]
-
-# set up siteyear random effect & scaled predictors
-hdata$siteyear <- paste0(hdata$site,hdata$year)
-hdata$siteyear <- as.numeric(as.factor(hdata$siteyear))
-hdata$elevation <- as.numeric(as.factor(hdata$elevation))
-hdata$patch <- as.numeric(as.factor(hdata$patch))
-hdata$n.con.nb <- as.numeric(scale(hdata$n.con.nb))
-hdata$n.het.nb <- as.numeric(scale(hdata$n.het.nb))
-
-# run model for max height
-maxhdata <- list(N=dim(hdata)[1],
-                Nsiteyear=length(unique(hdata$siteyear)),
-                siteyear=hdata$siteyear,
-                y=hdata$max.height,
-                e=hdata$elevation,
-                p=hdata$patch,
-                cn=hdata$n.con.nb,
-                hn=hdata$n.het.nb)
-
-height.fit <- stan(model_code = trait.mod,init=0,data=maxhdata)
+# fit height model 
+maxhdata <- format.trait("max.height",data)
+height.fit <- stan(model_code = trait.mod,init=0,data=maxhdata,iter=12000,warmup=6000)
 summary(height.fit,pars=c("beta"))
 plot(height.fit,pars=c("beta"))
 
-# look at distribution of trait
-# hist(log(htraits$max.height)) # log-normal
-# # fit model
-# hfit <-lmer(log(max.height) ~ n.het.nb + n.con.nb + patch + elevation + (1|siteyear),data=htraits)
-# summary(hfit)
-# res <- simulateResiduals(hfit)
-# base::plot(res) # residuals good
-# positive effect of conspecifics
-# positive effect of shrubs
-# psitivie effect of low elevation
+# save output
+if(!dir.exists(paste0("./../outputs/",Sys.Date(),"/")))dir.create(paste0("./../outputs/",Sys.Date(),"/stan_fits/"))
+save(SLA.fit,file=paste0(paste0("./../outputs/",Sys.Date(),"/stan_fits/SLA.fit.rda")))
+save(SRL.fit,file=paste0(paste0("./../outputs/",Sys.Date(),"/stan_fits/SRL.fit.rda")))
+save(height.fit,file=paste0(paste0("./../outputs/",Sys.Date(),"/stan_fits/height.fit.rda")))
+

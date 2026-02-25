@@ -25,11 +25,10 @@ bdata.complete$SLA <- as.numeric(scale(bdata.complete$SLA))
 bdata.complete$SRL <- as.numeric(scale(bdata.complete$SRL))
 
 # formatting for stan
-#bdata.complete$env <- paste0(bdata.complete$elevation,"-",bdata.complete$patch)
 bdata.complete$elevation <- as.numeric(as.factor(bdata.complete$elevation))
 bdata.complete$patch <- as.numeric(as.factor(bdata.complete$patch))
 
-bdata.complete$siteyear <- paste0(bdata.complete$site,bdata.complete$year)
+bdata.complete$siteyear <- paste0(bdata.complete$year,bdata.complete$site,bdata.complete$shrub)
 bdata.complete$siteyear <- as.numeric(as.factor(bdata.complete$siteyear))
 
 # Bayesian model
@@ -100,11 +99,13 @@ data <- list(N=dim(bdata.complete)[1],
              p=bdata.complete$patch
 )
 
-TbyE.fit <- stan(model_code = TbyE.mod,init=0,data=data,iter = 4000,warmup = 2000)
+# run model
+TbyE.fit <- stan(model_code = TbyE.mod,init=0,data=data,iter = 12000,warmup = 6000)
+
+# look at output
 summary(TbyE.fit,pars=c("beta"))
 plot(TbyE.fit,pars=c("beta"))
 
-# biomass as a function of traits, environmental conditions, and their interaction
-biomass.trait <- lmer(log(aboveground_mass) ~ env*SLA + env*SRL + env*max.height + env*emergence +
-                (1|siteyear),data=complete)
-summary(biomass.trait)
+# save output
+if(!dir.exists(paste0("./../outputs/",Sys.Date(),"/")))dir.create(paste0("./../outputs/",Sys.Date(),"/stan_fits/"))
+save(TbyE.fit,file=paste0(paste0("./../outputs/",Sys.Date(),"/stan_fits/TbyE.fit.rda")))

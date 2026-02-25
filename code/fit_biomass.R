@@ -6,7 +6,7 @@ data <- data[data$species=="BRTE",]
 
 # formatting
 bdata <- data[!is.na(data$aboveground_mass),]
-bdata$siteyear <- paste0(bdata$site,bdata$year)
+bdata$siteyear <- paste0(bdata$year,bdata$site,bdata$shrub)
 bdata$siteyear <- as.numeric(as.factor(bdata$siteyear))
 bdata$nb.number <- bdata$n.con.nb + bdata$n.het.nb
 
@@ -53,7 +53,7 @@ model {
 
 	// Normal sampling distribution
   for(i in 1:N){
-      y[i] ~ normal(mu[i],sigma);
+      y[i] ~ lognormal(mu[i],sigma);
   }
 	
 	// priors
@@ -82,22 +82,14 @@ data <- list(N=dim(bdata)[1],
              cn=bdata$n.con.nb,
              hn=bdata$n.het.nb)
 
-mass.fit <- stan(model_code = mass.mod,init=0,data=data)
+# run model
+mass.fit <- stan(model_code = mass.mod,init=0,data=data,iter=12000,warmup=6000)
+
+# look at output
 summary(mass.fit,pars=c("beta"))
 plot(mass.fit,pars=c("beta"))
 
-# model
-mass <- lmer(log(aboveground_mass) ~ n.con.nb*patch + n.het.nb*patch + n.con.nb*elevation + n.het.nb*elevation + 
-              (1|siteyear),data=bdata)
-summary(mass)
-
-# neighbor number model
-# mass <- lmer(log(aboveground_mass) ~ elevation*nb.number + patch*nb.number+ 
-#                (1|siteyear),data=biomass)
-# summary(mass)
-
-# quick plots
-boxplot(mean.season.VWC ~ patch,data = biomass)
-boxplot(mean.season.VWC ~ elevation,data = biomass)
-
+# save output
+if(!dir.exists(paste0("./../outputs/",Sys.Date(),"/")))dir.create(paste0("./../outputs/",Sys.Date(),"/stan_fits/"))
+save(mass.fit,file=paste0(paste0("./../outputs/",Sys.Date(),"/stan_fits/mass.fit.rda")))
 

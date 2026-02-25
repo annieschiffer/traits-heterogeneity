@@ -35,10 +35,15 @@ all.mass$species[all.mass$species=="PD"] <- "PODO"
 all.mass <- all.mass %>% group_by(site,shrub,patch,species) %>% summarize(n.mass = sum(aboveground_mass),
                                                                           n = n())
 # remove the ones where BRTE is alone (no neighbors)
-remove <- all.mass %>% group_by(site,shrub,patch) %>% summarize(n.emerged=sum(n),
-                                                                    species=unique(species))
-remove <- remove[which(remove$species=="BRTE" & remove$n.emerged==1),]
-all.mass <- all.mass[-c(16,17),]
+remove <- pivot_wider(all.mass,names_from = species,values_from = n)
+remove[is.na(remove)] <- 0
+remove <- remove %>% group_by(site,shrub,patch) %>% summarize(nBRTE=sum(BRTE),
+                                                                nCOPA=sum(COPA),
+                                                                nALDE=sum(ALDE),
+                                                                nPODO=sum(PODO))
+rows.remove <- remove[which(remove$nBRTE==1 & remove$nALDE==0 & remove$nCOPA==0 & remove$nPODO==0),c(1:3)]
+all.mass <- all.mass[-which(all.mass$site=="high_gate" & all.mass$shrub=="4" & all.mass$patch=="shrub"),] # removing manually
+all.mass <- all.mass[-which(all.mass$site=="high_north" & all.mass$shrub=="3" & all.mass$patch=="shrub"),] # removing manually
 
 # merge number of neighbors from mass dataset and neighborhood dataset
 mass.num <- all.mass[,-5]

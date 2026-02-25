@@ -5,7 +5,7 @@ gdata <- read.csv("./../clean_data/all_data_combined.csv")
 gdata <- gdata[gdata$species=="BRTE",]
 gdata$nb.number <- gdata$n.con.nb + gdata$n.het.nb
 # formatting
-gdata$siteyear <- paste0(gdata$site,gdata$year)
+gdata$siteyear <- paste0(gdata$year,gdata$site,gdata$shrub)
 gdata$siteyear <- as.numeric(as.factor(gdata$siteyear))
 
 gdata$elevation <- as.numeric(as.factor(gdata$elevation))
@@ -80,12 +80,14 @@ data <- list(N=dim(gdata)[1],
              cn=gdata$n.con.nb,
              hn=gdata$n.het.nb)
 
-germ.fit <- stan(model_code = germ.mod,init=0,data=data)
+# run model
+germ.fit <- stan(model_code = germ.mod,init=0,data=data,iter=12000,warmup=6000)
+
+# look at output
 summary(germ.fit,pars=c("beta"))
 plot(germ.fit,pars=c("beta"))
 
-# germination as a function of neighbors, microsite, and elevation
-germ <- glmer(germination ~ elevation*nb.number + patch*nb.number+ 
-              (1|siteyear),data=data,family = "binomial")
-summary(germ)
+# save output
+if(!dir.exists(paste0("./../outputs/",Sys.Date(),"/")))dir.create(paste0("./../outputs/",Sys.Date(),"/stan_fits/"))
+save(germ.fit,file=paste0(paste0("./../outputs/",Sys.Date(),"/stan_fits/germ.fit.rda")))
 

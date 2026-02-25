@@ -12,6 +12,7 @@ if (!require("RColorBrewer")) install.packages("RColorBrewer"); library(RColorBr
 if (!require("DHARMa")) install.packages("DHARMa"); library(DHARMa)
 if (!require("lqmm")) install.packages("lqmm"); library(lqmm)
 if (!require("rstan")) install.packages("rstan"); library(rstan)
+if (!require("bayesplot")) install.packages("bayesplot"); library(bayesplot)
 
 # set working directory
 current_path <- getActiveDocumentContext()$path
@@ -39,3 +40,10 @@ source("fit_germination.R")
 source("fit_biomass.R")
 
 source("fit_traits.R")
+
+source("fit_trait_env.R")
+
+#### Make figures ####
+
+source("make_figures.R")
+
