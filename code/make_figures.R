@@ -1,8 +1,15 @@
 ## Make figures
 
+#### load data and custom functions
+source("fig_functions.R")
+load("./../outputs/2026-02-25/stan_fits/germ.fit.rda")
+load("./../outputs/2026-02-25/stan_fits/mass.fit.rda")
+# import data
+gdata <- read.csv("./../clean_data/all_data_combined.csv")
+gdata <- gdata[gdata$species=="BRTE",]
+all.data <- gdata
+
 ##### Fig 2 --------------
-load("./../outputs/2026-02-25/germ.fit.rda")
-load("./../outputs/2026-02-25/mass.fit.rda")
 
 # for binary variables, first alphabetical level = reference
 # output shows difference moving from high to low elevation, difference moving from open to shrub patch
@@ -22,7 +29,7 @@ germ.fig <- mcmc_intervals(germ.results) +
   scale_y_discrete(limit=rev(c("beta[1]","beta[2]","beta[3]","beta[4]","beta[5]","beta[6]","beta[7]","beta[8]")),
                    label=rev(c("elevation (low)","patch (shrub)","conspecific neighbors","heterospecific neighbors","elevation (low) x conspecific","elevation (low) x heterospecific",
                            "patch (shrub) x conspecific","patch (shrub) x heterospecific")))+
-  labs(x="Scaled effect size",title="Germination")+
+  labs(x="Scaled effect size",title="Emergence")+
   theme_classic()+
   geom_rect(data = rect_data1, aes(xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax),
             fill = brewer.pal(11,"PuOr")[4], alpha = 0.2, inherit.aes = FALSE)+
@@ -60,24 +67,23 @@ vital.rates
 
 # effect of neighbors in low (favorable) vs. high (stressful) elevation
 
-# import data
-all.data <- read.csv("./../clean_data/all_data_combined.csv")
-all.data <- all.data[all.data$species=="BRTE",]
+# predicting emergence rates over new neighbor abundance data
+predicted.data <- predict.emerg(germ.fit,gdata)
 
-germ.rates <- all.data %>% group_by(elevation,patch,subplot) %>% summarize(germ.rate = sum(germination)/n())
-sgh.elev <- ggplot(germ.rates,aes(x=elevation,y=germ.rate,fill=subplot))+
-  geom_bar(stat = "identity",position=position_dodge())+
-  labs(x="Environment",y="Germination rate",fill="Neighbors",
-       title="Germination rates across stress gradient")+
-  scale_fill_manual(limits=c("R","C"),
-                    labels=c("absent","present"),
-                    values=brewer.pal(11,"PuOr")[c(2,10)])+
-  scale_x_discrete(limits=c("low","high"),
-                   labels=c("favorable","stressful"))+
+sgh <- ggplot(predicted.data,aes(x = num.nb, y = pmed,color=factor(elevation))) +
+  facet_grid(~neighbors)+
+  geom_line(size = 2) +
+  geom_ribbon(aes(ymin = plower, ymax = pupper,fill=factor(elevation)),
+              alpha = 0.1,show.legend = FALSE) +
+  ylim(0, 1)+
+  scale_fill_manual(limits=c("0","1"),labels=c("high","low"),
+                    values=brewer.pal(11,"PuOr")[c(10,3)])+
+  scale_color_manual(limits=c("0","1"),labels=c("high (stressful)","low (favorable)"),
+                    values=brewer.pal(11,"PuOr")[c(10,3)])+
+  labs(x="Neighbor abundance",y="Emergence probability",color="Elevation",title="Predicted emergence probability along stress gradient")+
   theme_minimal()+
-  theme(axis.title = element_text(size=15),axis.text=element_text(size=12),title=element_text(size=15,face="bold"),
-        legend.title=element_text(size=15),legend.text=element_text(size=12))
-sgh.elev
+  theme(strip.text = element_text(size=12),axis.title = element_text(size=15),axis.text=element_text(size=12),
+        legend.title=element_text(size=15),legend.text=element_text(size=12),title=element_text(size=15,face="bold"))
 
 ##### Fig 4 ----------------
 
@@ -89,23 +95,43 @@ rtraits <- rtraits[-which(rtraits$root_mass==0),]
 rtraits$SRL <- as.numeric(rtraits$length_cm)/as.numeric(rtraits$root_mass)
 
 rsum <- rtraits[,c("patch","elevation","n.het.nb","n.con.nb","SRL")]
-rsum<- pivot_longer(rsum,cols = c(n.het.nb,n.con.nb),names_to = "Neighbors",values_to = "Number")
-rsum <- rename(rsum, "value"="SRL")
-rsum$trait <- "SRL"
-rsum$elevation <- factor(rsum$elevation, levels = c("low","high"))
+srlpred <- predict.srl(SRL.fit,rsum)
 
-trait.scatter <- ggplot(rsum,aes(x=Number,y=log(value),color=Neighbors,linetype=patch))+
+rsum <- pivot_longer(rsum,cols = c("n.het.nb","n.con.nb"),names_to = "Neighbors",values_to = "num.nb")
+srlpred$patch[srlpred$patch==0] <- "open"
+srlpred$patch[srlpred$patch==1] <- "shrub"
+srlpred <- srlpred %>% rename("Neighbors"="neighbors")
+
+trait.scatter <- ggplot(rsum,aes(x=num.nb,y=log(SRL),color=Neighbors))+
+  geom_line(data=srlpred,aes(x=num.nb,y=log(ymed),color=Neighbors))+
   geom_point()+
-  geom_smooth(method="lm",se=FALSE)+
+  facet_grid(~patch)+
   scale_color_manual(limits=c("n.con.nb","n.het.nb"),
                      labels=c("conspecific","heterospecific"),
     values=brewer.pal(11,"PuOr")[c(3,9)])+
-  scale_linetype_manual(limits=c("open","shrub"),values=c("dashed","solid"))+
+  #scale_linetype_manual(limits=c("open","shrub"),values=c("dashed","solid"))+
   theme_minimal()+
   labs(x="Number of neighbors",y="log(SRL)",title="Effect of patch and neighbors on SRL")+
   theme(legend.title = element_blank(),legend.text = element_text(size=12),axis.text=element_text(size=12),axis.title=element_text(size=15),
         title=element_text(size=15,face="bold"))
-trait.scatter
+
+
+## violin plots
+r.nb.patch <- rtraits[,c("patch","elevation","subplot","n.het.nb","n.con.nb","SRL")]
+r.nb.patch <- r.nb.patch %>% mutate(neighborhood = case_when(n.het.nb > 0 & n.con.nb == 0 ~ "heterospecific",
+                                              n.con.nb > 0 & n.het.nb == 0 ~ "conspecific",
+                                              n.con.nb ==0 & n.het.nb == 0 ~ "none",
+                                              n.het.nb > 0 & n.con.nb > 0 ~ "both"))
+trait.box <- ggplot(r.nb.patch,aes(x=patch,y=log(SRL),fill=neighborhood)) +
+  geom_boxplot()+
+  scale_fill_manual(limits=c("both","conspecific","none"),
+                    labels=c("both","conspecific only","none"),
+                    values=brewer.pal(11,"PuOr")[c(4,8,9)])+
+  labs(title="Effect of patch and neighbors on SRL")+
+  theme_classic()+
+  theme(axis.title.x = element_blank(),legend.title = element_blank(),axis.title.y = element_text(size=15),
+        axis.text.x = element_text(size=15),axis.text.y=element_text(size=12),legend.text = element_text(size=15),
+        title=element_text(size=15,face="bold"))
 
 #### Fig 5? -----------------
 
@@ -115,8 +141,9 @@ trait.scatter
 # save output
 if(!dir.exists(paste0("./../outputs/", Sys.Date(),"/"))) dir.create(paste0("./../outputs/", Sys.Date(),"/"))
 ggsave(vital.rates,file = paste0("./../outputs/", Sys.Date(),"/vital_estimates.jpeg"),height = 6,width = 10)
-ggsave(sgh.elev,file = paste0("./../outputs/",Sys.Date(),"/SGH_plot.jpeg"),height = 5,width = 6)
-ggsave(trait.scatter, file = paste0("./../outputs/",Sys.Date(),"/SRL_scatter.jpeg"),height=5,width=6)
+ggsave(sgh,file = paste0("./../outputs/",Sys.Date(),"/SGH_plot.jpeg"),height = 6,width = 10)
+#ggsave(trait.scatter, file = paste0("./../outputs/",Sys.Date(),"/SRL_scatter.jpeg"),height=5,width=6)
+ggsave(trait.box, file=paste0("./../outputs/",Sys.Date(),"/SRL_boxplot.jpeg"),height=5,width=7)
 
 
 
