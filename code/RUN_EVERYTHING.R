@@ -18,6 +18,10 @@ if (!require("bayesplot")) install.packages("bayesplot"); library(bayesplot)
 current_path <- getActiveDocumentContext()$path
 setwd(dirname(current_path)) # set working directory to location of this file
 
+# set output directory
+if(!dir.exists(paste0("./../outputs/",Sys.Date(),"/")))dir.create(paste0("./../outputs/",Sys.Date(),"/"))
+if(!dir.exists(paste0("./../outputs/",Sys.Date(),"/stan_fits/")))dir.create(paste0("./../outputs/",Sys.Date(),"/stan_fits/"))
+
 #### Data cleaning ####
 
 source("clean_2024_data.R")
@@ -35,13 +39,19 @@ source("merge_data.R")
 
 #### Data analysis ####
 
+## Aim 1: test stress gradient hypothesis
+
 source("fit_germination.R")
 
 source("fit_biomass.R")
 
+## Aim 2: analyze trait shifts along gradient
+
 source("fit_traits.R")
 
-source("fit_trait_env.R")
+## Aim 3: identify responses to trait x environment
+
+source("fit_trait_env_biomass.R")
 
 #### Make figures ####
 

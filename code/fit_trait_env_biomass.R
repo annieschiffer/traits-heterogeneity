@@ -17,6 +17,8 @@ bdata.complete$SLA <- as.numeric(bdata.complete$total_leaf_area)/as.numeric(bdat
 bdata.complete$SRL <- as.numeric(bdata.complete$length_cm)/as.numeric(bdata.complete$root_mass)
 bdata.complete <- bdata.complete[-which(bdata.complete$SRL==Inf),]
 
+write.csv(bdata.complete,"./../clean_data/complete_data_biomass.csv",row.names = FALSE)
+
 # scaling
 bdata.complete$n.con.nb <- as.numeric(scale(bdata.complete$n.con.nb))
 bdata.complete$n.het.nb <- as.numeric(scale(bdata.complete$n.het.nb))
@@ -33,7 +35,7 @@ bdata.complete$siteyear <- as.numeric(as.factor(bdata.complete$siteyear))
 
 # Bayesian model
 
-TbyE.mod <- c("
+TbyE.mass.mod <- c("
 data {
     int<lower=0> N; // number of observations
     real y[N]; // response variable
@@ -68,12 +70,12 @@ model {
 
 	// Normal sampling distribution
   for(i in 1:N){
-      y[i] ~ normal(mu[i],sigma);
+      y[i] ~ lognormal(mu[i],sigma);
   }
 	
 	// priors
 	beta0 ~ normal(alpha,nu); // hierarchical intercept
-	beta ~ normal(0,10);
+	beta ~ normal(0,5);
 	sigma ~ normal(0,10);
 	
 	// hyper priors
@@ -81,6 +83,18 @@ model {
   nu ~ normal(0,10); // nu for beta0 prior
 }
 
+generated quantities{
+    vector[N] res; // residuals
+    vector[N] ypred; // replicated data
+
+    for(i in 1:N){
+    // sample replicated data
+        ypred[i] = lognormal_rng(mu[i],sigma);
+  
+    // compute Pearson residuals
+        res[i] = (y[i] - exp(mu[i]))/sqrt(exp(mu[i]));        
+    }
+}
 ")
 
 # set up stan
@@ -100,12 +114,46 @@ data <- list(N=dim(bdata.complete)[1],
 )
 
 # run model
-TbyE.fit <- stan(model_code = TbyE.mod,init=0,data=data,iter = 12000,warmup = 6000)
+TbyE.mass.fit <- stan(model_code = TbyE.mass.mod,init=0,data=data,iter = 12000,warmup = 6000)
 
 # look at output
-summary(TbyE.fit,pars=c("beta"))
-plot(TbyE.fit,pars=c("beta"))
+summary(TbyE.mass.fit,pars=c("beta"))
+plot(TbyE.mass.fit,pars=c("beta"))
+
+# save traceplot to show model convergence
+trace.TbyE.mass <- traceplot(TbyE.mass.fit,pars=c("beta"))
+trace.TbyE.mass
+ggsave(trace.TbyE.mass,file=paste0(paste0("./../outputs/",Sys.Date(),"/trace_TbyE.mass.jpeg")),height = 6,width = 10)
+
+## Posterior predictive checks
+
+# get quantiles from posteriors
+ypred<-extract(TbyE.mass.fit)$ypred
+ypred_quant<-apply(ypred,2,quantile,probs=c(0.5,0.025,0.975))
+
+# plot observed and predicted data
+n<- length(bdata.complete$aboveground_mass)
+
+png(paste0("./../outputs/", Sys.Date(),"/TbyE.mass.ppc.png"), width = 8, height = 6, units = "in", res = 300)
+
+plot(1:n,bdata.complete$aboveground_mass,xlab="observation number",ylab="data value",pch=19)
+segments(1:n,ypred_quant[2,],1:n,ypred_quant[3,],lty=3,col="firebrick")
+points(1:n,ypred_quant[1,],pch=19,col=alpha("firebrick",.5))
+
+dev.off()
+
+# correlation between observed and predicted based on point estimates
+cor(bdata.complete$aboveground_mass,ypred_quant[1,]) # 0.81
+
+# plot residuals
+png(paste0("./../outputs/", Sys.Date(),"/TbyE.mass.resid.png"), width = 8, height = 6, units = "in", res = 300)
+
+resid<-extract(TbyE.mass.fit)$res
+plot(ypred_quant[1,],apply(resid,2,median),xlab="expected value",ylab="residual",pch=19)
+abline(h=0,lty=2)
+
+dev.off()
 
 # save output
 if(!dir.exists(paste0("./../outputs/",Sys.Date(),"/")))dir.create(paste0("./../outputs/",Sys.Date(),"/stan_fits/"))
-save(TbyE.fit,file=paste0(paste0("./../outputs/",Sys.Date(),"/stan_fits/TbyE.fit.rda")))
+save(TbyE.mass.fit,file=paste0(paste0("./../outputs/",Sys.Date(),"/stan_fits/TbyE.mass.fit.rda")))

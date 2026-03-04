@@ -1,4 +1,4 @@
-### Fitting models with germination as response
+### Fitting models with emergence as response
 
 # import data
 gdata <- read.csv("./../clean_data/all_data_combined.csv")
@@ -64,6 +64,19 @@ model {
   sigma ~ normal(0,10); // sigma for beta0 prior
 }
 
+generated quantities{
+    vector[N] res; // residuals
+    vector[N] ypred; // replicated data
+
+    for(i in 1:N){
+    // sample replicated data
+        ypred[i] = bernoulli_rng(inv_logit(prob[i]));
+  
+    // compute Pearson residuals
+        res[i] = (y[i] - inv_logit(prob[i]))/sqrt(inv_logit(prob[i]));        
+    }
+}
+
 ")
 
 # set up stan
@@ -87,7 +100,42 @@ germ.fit <- stan(model_code = germ.mod,init=0,data=data,iter=12000,warmup=6000)
 summary(germ.fit,pars=c("beta"))
 plot(germ.fit,pars=c("beta"))
 
+# save traceplot to show model convergence
+trace.germ <- traceplot(germ.fit,pars=c("beta"))
+trace.germ
+ggsave(trace.germ,file=paste0(paste0("./../outputs/",Sys.Date(),"/trace_germ.jpeg")),height = 6,width = 10)
+
+
+## Posterior predictive checks
+
+# get quantiles from posteriors
+ypred<-extract(germ.fit)$ypred
+ypred_quant<-apply(ypred,2,quantile,probs=c(0.5,0.025,0.975))
+
+# plot observed and predicted data
+n<- length(gdata$germination)
+
+png(paste0("./../outputs/", Sys.Date(),"/germ.ppc.png"), width = 8, height = 6, units = "in", res = 300)
+
+plot(1:n,gdata$germination,xlab="observation number",ylab="data value",pch=19)
+#segments(1:n,ypred_quant[2,],1:n,ypred_quant[3,],lty=3,col="firebrick")
+points(1:n,ypred_quant[1,],pch=19,col=alpha("firebrick",.5))
+
+dev.off()
+
+# correlation between observed and predicted based on point estimates
+cor(gdata$germination,ypred_quant[1,])
+
+# plot residuals
+png(paste0("./../outputs/", Sys.Date(),"/germ.resid.png"), width = 8, height = 6, units = "in", res = 300)
+
+resid<-extract(germ.fit)$res
+plot(ypred_quant[1,],apply(resid,2,median),xlab="expected value",ylab="residual",pch=19)
+abline(h=0,lty=2)
+
+dev.off()
+
+
 # save output
-if(!dir.exists(paste0("./../outputs/",Sys.Date(),"/")))dir.create(paste0("./../outputs/",Sys.Date(),"/stan_fits/"))
 save(germ.fit,file=paste0(paste0("./../outputs/",Sys.Date(),"/stan_fits/germ.fit.rda")))
 

@@ -47,6 +47,19 @@ model {
   alpha ~ normal(0,10); // alpha for beta0 prior
   nu ~ normal(0,10); // nu for beta0 prior
 }
+
+generated quantities{
+    vector[N] res; // residuals
+    vector[N] ypred; // replicated data
+
+    for(i in 1:N){
+    // sample replicated data
+        ypred[i] = lognormal_rng(mu[i],sigma);
+  
+    // compute Pearson residuals
+        res[i] = (y[i] - exp(mu[i]))/sqrt(exp(mu[i]));        
+    }
+}
 ")
 
 # set up stan
@@ -103,17 +116,66 @@ SLA.fit <- stan(model_code = trait.mod,init=0,data=sladata,iter=12000,warmup=600
 summary(SLA.fit,pars=c("beta"))
 plot(SLA.fit,pars=c("beta"))
 
+# save traceplot to show model convergence
+trace.SLA <- traceplot(SLA.fit,pars=c("beta"))
+trace.SLA
+ggsave(trace.SLA,file=paste0(paste0("./../outputs/",Sys.Date(),"/trace_SLA.jpeg")),height = 6,width = 10)
+
 # fit SRL model
 srldata <- format.trait("SRL",data)
 SRL.fit <- stan(model_code = trait.mod,init=0,data=srldata,iter=12000,warmup=6000)
 summary(SRL.fit,pars=c("beta"))
 plot(SRL.fit,pars=c("beta"))
 
+# save traceplot to show model convergence
+trace.SRL <- traceplot(SRL.fit,pars=c("beta"))
+trace.SRL
+ggsave(trace.SRL,file=paste0(paste0("./../outputs/",Sys.Date(),"/trace_SRL.jpeg")),height = 6,width = 10)
+
 # fit height model 
 maxhdata <- format.trait("max.height",data)
 height.fit <- stan(model_code = trait.mod,init=0,data=maxhdata,iter=12000,warmup=6000)
 summary(height.fit,pars=c("beta"))
 plot(height.fit,pars=c("beta"))
+
+# save traceplot to show model convergence
+trace.height <- traceplot(height.fit,pars=c("beta"))
+trace.height
+ggsave(trace.height,file=paste0(paste0("./../outputs/",Sys.Date(),"/trace_height.jpeg")),height = 6,width = 10)
+
+## Posterior predictive checks
+
+get.ppc <- function(stanfit,trait,response){
+  
+  # get quantiles from posteriors
+  ypred<-extract(stanfit)$ypred
+  ypred_quant<-apply(ypred,2,quantile,probs=c(0.5,0.025,0.975))
+  
+  # plot observed and predicted data
+  n<- length(response)
+  
+  png(paste0("./../outputs/", Sys.Date(),"/",trait,".ppc.png"), width = 8, height = 6, units = "in", res = 300)
+  
+  plot(1:n,response,xlab="observation number",ylab="data value",pch=19)
+  segments(1:n,ypred_quant[2,],1:n,ypred_quant[3,],lty=3,col="firebrick")
+  points(1:n,ypred_quant[1,],pch=19,col=alpha("firebrick",.5))
+  
+  dev.off()
+  
+  # plot residuals
+  png(paste0("./../outputs/", Sys.Date(),"/",trait,".resid.png"), width = 8, height = 6, units = "in", res = 300)
+  
+  resid<-extract(stanfit)$res
+  plot(ypred_quant[1,],apply(resid,2,median),xlab="expected value",ylab="residual",pch=19)
+  abline(h=0,lty=2)
+  
+  dev.off()
+}
+
+get.ppc(SLA.fit,"SLA",sladata[["y"]])
+get.ppc(SRL.fit,"SRL",srldata[["y"]])
+get.ppc(height.fit,"height",maxhdata[["y"]])
+
 
 # save output
 if(!dir.exists(paste0("./../outputs/",Sys.Date(),"/")))dir.create(paste0("./../outputs/",Sys.Date(),"/stan_fits/"))

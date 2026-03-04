@@ -66,6 +66,19 @@ model {
   nu ~ normal(0,10); // nu for beta0 prior
 }
 
+generated quantities{
+    vector[N] res; // residuals
+    vector[N] ypred; // replicated data
+
+    for(i in 1:N){
+    // sample replicated data
+        ypred[i] = lognormal_rng(mu[i],sigma);
+  
+    // compute Pearson residuals
+        res[i] = (y[i] - exp(mu[i]))/sqrt(exp(mu[i]));        
+    }
+}
+
 ")
 
 # set up stan
@@ -88,6 +101,40 @@ mass.fit <- stan(model_code = mass.mod,init=0,data=data,iter=12000,warmup=6000)
 # look at output
 summary(mass.fit,pars=c("beta"))
 plot(mass.fit,pars=c("beta"))
+
+# save traceplot to show model convergence
+trace.mass <- traceplot(mass.fit,pars=c("beta"))
+trace.mass
+ggsave(trace.mass,file=paste0(paste0("./../outputs/",Sys.Date(),"/trace_mass.jpeg")),height = 6,width = 10)
+
+## Posterior predictive checks
+
+# get quantiles from posteriors
+ypred<-extract(mass.fit)$ypred
+ypred_quant<-apply(ypred,2,quantile,probs=c(0.5,0.025,0.975))
+
+# plot observed and predicted data
+n<- length(bdata$aboveground_mass)
+
+png(paste0("./../outputs/", Sys.Date(),"/mass.ppc.png"), width = 8, height = 6, units = "in", res = 300)
+
+plot(1:n,bdata$aboveground_mass,xlab="observation number",ylab="data value",pch=19)
+segments(1:n,ypred_quant[2,],1:n,ypred_quant[3,],lty=3,col="firebrick")
+points(1:n,ypred_quant[1,],pch=19,col=alpha("firebrick",.5))
+
+dev.off()
+
+# correlation between observed and predicted based on point estimates
+cor(bdata$aboveground_mass,ypred_quant[1,]) # 0.81
+
+# plot residuals
+png(paste0("./../outputs/", Sys.Date(),"/mass.resid.png"), width = 8, height = 6, units = "in", res = 300)
+
+resid<-extract(mass.fit)$res
+plot(ypred_quant[1,],apply(resid,2,median),xlab="expected value",ylab="residual",pch=19)
+abline(h=0,lty=2)
+
+dev.off()
 
 # save output
 if(!dir.exists(paste0("./../outputs/",Sys.Date(),"/")))dir.create(paste0("./../outputs/",Sys.Date(),"/stan_fits/"))
