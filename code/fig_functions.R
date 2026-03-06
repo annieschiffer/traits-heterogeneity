@@ -55,7 +55,7 @@ predict.emerg <- function(stanfit,emergdata){
   newdata$pmed <- p_med
   newdata$plower <- p_lower
   newdata$pupper <- p_upper
-  
+  browser()
   # separate by neighbor identity because we want to see relationships for conspecific/heterospecific when other is 0
   only.con <- newdata[newdata$het.raw==0,]
   only.het <- newdata[newdata$con.raw==0,]
@@ -133,7 +133,7 @@ predict.srl <- function(stanfit,srl.data){
   newdata$ymed <- y_med
   newdata$ylower <- y_lower
   newdata$yupper <- y_upper
-  
+
   # separate by neighbor identity because we want to see relationships for conspecific/heterospecific when other is 0
   only.con <- newdata[newdata$het.raw==0,]
   only.het <- newdata[newdata$con.raw==0,]
