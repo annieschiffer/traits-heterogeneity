@@ -18,7 +18,7 @@ predict.emerg <- function(stanfit,emergdata){
   mean.raw.het <- mean(emergdata$n.het.nb)
   sd.raw.con <- sd(emergdata$n.con.nb)
   sd.raw.het <- sd(emergdata$n.het.nb)
-  
+
   # create new y data frame
   newdata <- expand.grid(
     con.raw = 0:50,
@@ -42,10 +42,10 @@ predict.emerg <- function(stanfit,emergdata){
     eta <- post$mu[i] + beta_elev[i]*newdata$elevation + beta_p[i]*newdata$patch + beta_con[i]*newdata$con.scale + beta_het[i]*newdata$het.scale +
       beta_elxcon[i]*newdata$con.scale*newdata$elevation + beta_elxhet[i]*newdata$het.scale*newdata$elevation+
       beta_pxcon[i]*newdata$con.scale*newdata$patch + beta_pxhet[i]*newdata$het.scale*newdata$patch
-    #browser()
-    p_mat[i, ] <- inv_logit(eta)
+
+    p_mat[i, ] <- eta
   }
-  #browser()
+
   # extract the median and credible intervals of predictions
   p_med <- apply(p_mat,2,median)
   p_lower <- apply(p_mat,2,quantile,0.025)
@@ -55,10 +55,10 @@ predict.emerg <- function(stanfit,emergdata){
   newdata$pmed <- p_med
   newdata$plower <- p_lower
   newdata$pupper <- p_upper
-  browser()
+
   # separate by neighbor identity because we want to see relationships for conspecific/heterospecific when other is 0
-  only.con <- newdata[newdata$het.raw==0,]
-  only.het <- newdata[newdata$con.raw==0,]
+  only.con <- newdata[newdata$het.raw==round(mean.raw.het),]
+  only.het <- newdata[newdata$con.raw==round(mean.raw.con),]
   
   # average over patch identity - patch was in stan model but don't care about the relationship in fig 3
   only.con <- only.con %>% group_by(elevation,con.raw) %>% summarize(pmed = mean(pmed),

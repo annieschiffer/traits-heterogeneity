@@ -135,6 +135,10 @@ abline(h=0,lty=2)
 
 dev.off()
 
+t <- glmmTMB(germination ~ elevation*n.con.nb + patch*n.con.nb + elevation*n.het.nb +
+               patch*n.het.nb + (1|siteyear), data=gdata, family = binomial(link="logit"))
+t <- glmmTMB(germination ~ elevation*n.het.nb +
+               patch*n.het.nb + (1|siteyear), data=gdata, family = binomial(link="logit"))
 
 # save output
 save(germ.fit,file=paste0(paste0("./../outputs/",Sys.Date(),"/stan_fits/germ.fit.rda")))

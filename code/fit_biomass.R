@@ -136,6 +136,13 @@ abline(h=0,lty=2)
 
 dev.off()
 
+t <- lmer(log(aboveground_mass) ~ elevation*n.con.nb + patch*n.con.nb + elevation*n.het.nb +
+               patch*n.het.nb + (1|siteyear), data=bdata)
+t <- lmer(log(aboveground_mass) ~ elevation*n.het.nb +
+               patch*n.het.nb + (1|siteyear), data=bdata)
+res <- resid(t)
+plot(bdata$n.con.nb,res)
+
 # save output
 if(!dir.exists(paste0("./../outputs/",Sys.Date(),"/")))dir.create(paste0("./../outputs/",Sys.Date(),"/stan_fits/"))
 save(mass.fit,file=paste0(paste0("./../outputs/",Sys.Date(),"/stan_fits/mass.fit.rda")))

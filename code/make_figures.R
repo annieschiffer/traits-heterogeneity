@@ -4,6 +4,7 @@
 source("fig_functions.R")
 load("./../outputs/2026-03-04/stan_fits/germ.fit.rda")
 load("./../outputs/2026-03-04/stan_fits/mass.fit.rda")
+load("./../outputs/2026-03-04/stan_fits/TbyE.mass.fit.rda")
 # import data
 gdata <- read.csv("./../clean_data/all_data_combined.csv")
 gdata <- gdata[gdata$species=="BRTE",]
@@ -75,17 +76,17 @@ sgh <- ggplot(predicted.data,aes(x = num.nb, y = pmed,color=factor(elevation))) 
   facet_grid(~neighbors)+
   geom_line(size = 2) +
   geom_ribbon(aes(ymin = plower, ymax = pupper,fill=factor(elevation)),
-              alpha = 0.1,show.legend = FALSE) +
-  ylim(0, 1)+
+              alpha = 0.1,colour=NA,show.legend = FALSE) +
+  #ylim(0, 1)+
   scale_fill_manual(limits=c("0","1"),labels=c("high","low"),
                     values=brewer.pal(11,"PuOr")[c(10,3)])+
   scale_color_manual(limits=c("0","1"),labels=c("high (stressful)","low (favorable)"),
                     values=brewer.pal(11,"PuOr")[c(10,3)])+
-  labs(x="Neighbor abundance",y="Emergence probability",color="Elevation",title="Predicted emergence probability along stress gradient")+
+  labs(x="Neighbor abundance",y="logit (emergence probability)",color="Elevation",title="Predicted emergence probability along stress gradient")+
   theme_minimal()+
   theme(strip.text = element_text(size=12),axis.title = element_text(size=15),axis.text=element_text(size=12),
-        legend.title=element_text(size=15),legend.text=element_text(size=12),title=element_text(size=15,face="bold"))
-
+        legend.title=element_text(size=15),legend.text=element_text(size=12),title=element_text(size=15))
+sgh
 ##### Fig 4 ----------------
 
 # trait shifts in low vs. high and open vs. shrub - only SRL varied with anything
@@ -146,6 +147,9 @@ trait.scatter <- ggplot(rtraits,aes(x=SRL,y=aboveground_mass,color=factor(elevat
         title=element_text(size=15,face="bold"))
 trait.scatter
 
+# biomass & density
+plot(all.data$n.con.nb,log(all.data$aboveground_mass))
+plot(all.data$n.het.nb,log(all.data$aboveground_mass))
 
 # save output
 if(!dir.exists(paste0("./../outputs/", Sys.Date(),"/"))) dir.create(paste0("./../outputs/", Sys.Date(),"/"))
