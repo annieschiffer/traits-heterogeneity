@@ -4,6 +4,7 @@
 source("fig_functions.R")
 load("./../outputs/2026-03-04/stan_fits/germ.fit.rda")
 load("./../outputs/2026-03-04/stan_fits/mass.fit.rda")
+load("./../outputs/2026-03-04/stan_fits/SRL.fit.rda")
 load("./../outputs/2026-03-04/stan_fits/TbyE.mass.fit.rda")
 # import data
 gdata <- read.csv("./../clean_data/all_data_combined.csv")
@@ -125,31 +126,31 @@ trait.box <- ggplot(r.nb.patch,aes(x=patch,y=log(SRL),fill=neighborhood)) +
 
 # effect of SRL on biomass across patches and elevations (scatterplot)
 
-rtraits <- all.data[-which(is.na(all.data$length_cm)),]
-rtraits <- rtraits[-which(is.na(rtraits$root_mass)),]
-rtraits <- rtraits[-which(rtraits$root_mass==0),]
-rtraits$SRL <- as.numeric(rtraits$length_cm)/as.numeric(rtraits$root_mass)
-
-pred.y.srl <- predict.TbyE.biomass(TbyE.mass.fit,bdata.complete)
-
-# scatterplot
-trait.scatter <- ggplot(rtraits,aes(x=SRL,y=aboveground_mass,color=factor(elevation),shape=factor(patch)))+
-  geom_line(data=pred.y.srl,aes(x=as.numeric(srl.raw),y=as.numeric(ymed),linetype=as.factor(patch)))+
-  geom_point()+
-  #facet_grid(~patch)+
-  # scale_color_manual(limits=c("low","high"),
-  #                    labels=c("low","high"),
-  #                    values=brewer.pal(11,"PuOr")[c(3,9)])+
-  # scale_shape_manual(limits=c("open","shrub"),values=c(1,19))+
-  theme_minimal()+
-  labs(x="Specific root length (logged)",y="log(biomass)",title="Effect of SRL x environment on biomass")+
-  theme(legend.title = element_blank(),legend.text = element_text(size=12),axis.text=element_text(size=12),axis.title=element_text(size=15),
-        title=element_text(size=15,face="bold"))
-trait.scatter
-
-# biomass & density
-plot(all.data$n.con.nb,log(all.data$aboveground_mass))
-plot(all.data$n.het.nb,log(all.data$aboveground_mass))
+# rtraits <- all.data[-which(is.na(all.data$length_cm)),]
+# rtraits <- rtraits[-which(is.na(rtraits$root_mass)),]
+# rtraits <- rtraits[-which(rtraits$root_mass==0),]
+# rtraits$SRL <- as.numeric(rtraits$length_cm)/as.numeric(rtraits$root_mass)
+# 
+# pred.y.srl <- predict.TbyE.biomass(TbyE.mass.fit,bdata.complete)
+# 
+# # scatterplot
+# trait.scatter <- ggplot(rtraits,aes(x=SRL,y=aboveground_mass,color=factor(elevation),shape=factor(patch)))+
+#   geom_line(data=pred.y.srl,aes(x=as.numeric(srl.raw),y=as.numeric(ymed),linetype=as.factor(patch)))+
+#   geom_point()+
+#   #facet_grid(~patch)+
+#   # scale_color_manual(limits=c("low","high"),
+#   #                    labels=c("low","high"),
+#   #                    values=brewer.pal(11,"PuOr")[c(3,9)])+
+#   # scale_shape_manual(limits=c("open","shrub"),values=c(1,19))+
+#   theme_minimal()+
+#   labs(x="Specific root length (logged)",y="log(biomass)",title="Effect of SRL x environment on biomass")+
+#   theme(legend.title = element_blank(),legend.text = element_text(size=12),axis.text=element_text(size=12),axis.title=element_text(size=15),
+#         title=element_text(size=15,face="bold"))
+# trait.scatter
+# 
+# # biomass & density
+# plot(all.data$n.con.nb,log(all.data$aboveground_mass))
+# plot(all.data$n.het.nb,log(all.data$aboveground_mass))
 
 # save output
 if(!dir.exists(paste0("./../outputs/", Sys.Date(),"/"))) dir.create(paste0("./../outputs/", Sys.Date(),"/"))
@@ -196,34 +197,34 @@ fplot <- ggplot(fcount,aes(x=flower,y=flowered,color=patch,linetype = subplot)) 
   scale_linetype_manual(limits=c("C","R"),labels=c("present","absent"),
                         values=c("solid","dashed"))
 
-pheno.plot <- ggarrange(eplot,fplot,nrow=2,ncol=1)
+#pheno.plot <- ggarrange(eplot,fplot,nrow=2,ncol=1)
 
 # save plot
-ggsave(pheno.plot,file = paste0("./../outputs/", Sys.Date(),"/supp_phenology.jpeg"),height = 6,width = 10)
+ggsave(eplot,file = paste0("./../outputs/", Sys.Date(),"/supp_phenology.jpeg"),height = 6,width = 10)
 
 ### Soil conditions across elevation and patches
 
 # calculate moisture differences
-low.sm <- mean(data$mean.season.VWC[data$elevation=="low"]) 
-high.sm <- mean(data$mean.season.VWC[data$elevation=="high"])
-open.sm <- mean(data$mean.season.VWC[data$patch=="open"]) 
-shrub.sm <- mean(data$mean.season.VWC[data$patch=="shrub"])
+low.sm <- mean(all.data$mean.season.VWC[all.data$elevation=="low"]) 
+high.sm <- mean(all.data$mean.season.VWC[all.data$elevation=="high"])
+open.sm <- mean(all.data$mean.season.VWC[all.data$patch=="open"]) 
+shrub.sm <- mean(all.data$mean.season.VWC[all.data$patch=="shrub"])
 
 # calculate snowmelt date differences
-spring.temps <- soil.temp[(soil.temp$date > "2024-03-01" & soil.temp$date < "2024-04-10") |
-                         (soil.temp$date > "2025-03-01" & soil.temp$date < "2025-04-10"),]
-snow.present <- spring.temps[which(spring.temps$temp < 35 & spring.temps$temp > 28),]
-snow.absent <- spring.temps[-which(spring.temps$temp < 35 & spring.temps$temp > 28),]
-
-#hist(snow.absent$date[snow.absent$site=="low_north" & snow.absent$year==2025],breaks="days")
-
-snowmelt.dates <- snow.absent %>% group_by(year,elevation,patch) %>% summarize(snowmelt = min(date))
-snowmelt.dates$snowmelt <- yday(snowmelt.dates$snowmelt)
-
-low.date <- mean(snowmelt.dates$snowmelt[snowmelt.dates$elevation=="low"])
-high.date <- mean(snowmelt.dates$snowmelt[snowmelt.dates$elevation=="high"])
-open.date <- mean(snowmelt.dates$snowmelt[snowmelt.dates$patch=="open"])
-shrub.date <- mean(snowmelt.dates$snowmelt[snowmelt.dates$patch=="shrub"])
+# spring.temps <- soil.temp[(soil.temp$date > "2024-03-01" & soil.temp$date < "2024-04-10") |
+#                          (soil.temp$date > "2025-03-01" & soil.temp$date < "2025-04-10"),]
+# snow.present <- spring.temps[which(spring.temps$temp < 35 & spring.temps$temp > 28),]
+# snow.absent <- spring.temps[-which(spring.temps$temp < 35 & spring.temps$temp > 28),]
+# 
+# #hist(snow.absent$date[snow.absent$site=="low_north" & snow.absent$year==2025],breaks="days")
+# 
+# snowmelt.dates <- snow.absent %>% group_by(year,elevation,patch) %>% summarize(snowmelt = min(date))
+# snowmelt.dates$snowmelt <- yday(snowmelt.dates$snowmelt)
+# 
+# low.date <- mean(snowmelt.dates$snowmelt[snowmelt.dates$elevation=="low"])
+# high.date <- mean(snowmelt.dates$snowmelt[snowmelt.dates$elevation=="high"])
+# open.date <- mean(snowmelt.dates$snowmelt[snowmelt.dates$patch=="open"])
+# shrub.date <- mean(snowmelt.dates$snowmelt[snowmelt.dates$patch=="shrub"])
 
 # formatting soil moisture and temperature data to plot
 moisture.data <- pivot_longer(data=all.data,cols = c("mean.season.VWC","min.season.VWC","max.season.VWC"),names_to = "anomoly",values_to = "percent_VWC")
@@ -231,18 +232,27 @@ temp.data <- pivot_longer(data=all.data,cols = c("mean.season.temp","min.season.
 
 # plot soil moisture and temp
 moisture.plot <- ggplot(moisture.data,aes(x=as.factor(elevation),y=percent_VWC,fill=as.factor(patch)))+
-  facet_grid(~anomoly)+
+  facet_grid(~anomoly,labeller=labeller(anomoly=c("max.season.VWC"="maximum","mean.season.VWC"="mean",
+                                                   "min.season.VWC"="minimum")))+
   geom_boxplot()+
-  labs(x="Elevation",y="% VWC",fill="Patch")
+  labs(x="Elevation",y="% VWC",fill="Patch")+
+  theme_minimal()+
+  theme(strip.text = element_text(size=12),axis.title = element_text(size=15),axis.text = element_text(size=12),
+        legend.title = element_text(size=15),legend.text=element_text(size=12))
+moisture.plot
 
-temp.plot <- ggplot(temp.data,aes(x=as.factor(elevation),y=degrees_C,fill=as.factor(patch)))+
-  facet_grid(~anomoly)+
-  geom_boxplot()+
-  labs(x="Elevation",y="degrees C",fill="Patch")
-
+# temp.plot <- ggplot(temp.data,aes(x=as.factor(elevation),y=degrees_C,fill=as.factor(patch)))+
+#   facet_grid(~anomoly,labeller=labeller(anomoly=c("max.season.temp"="maximum","mean.season.temp"="mean",
+#                                                    "min.season.temp"="minimum")))+
+#   geom_boxplot()+
+#   labs(x="Elevation",y="degrees C",fill="Patch")+
+#   theme_minimal()+
+#   theme(strip.text = element_text(size=12),axis.title = element_text(size=15),axis.text = element_text(size=12),
+#         legend.title = element_text(size=15),legend.text=element_text(size=12))
+# temp.plot
 # save output
 ggsave(moisture.plot,file=paste0("./../outputs/",Sys.Date(),"/supp_soil_moisture.jpeg"))
-ggsave(temp.plot,file=paste0("./../outputs/",Sys.Date(),"/supp_soil_temp.jpeg"))
+#ggsave(temp.plot,file=paste0("./../outputs/",Sys.Date(),"/supp_soil_temp.jpeg"))
 
 
 # # scatterplot for number of neighbors x continuous trait variables
