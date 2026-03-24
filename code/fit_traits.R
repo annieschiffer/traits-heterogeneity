@@ -1,6 +1,6 @@
 ### fitting models with traits as response
 
-# Bayesian model for SLA, SRL, max height
+# Bayesian model for SLA, SRL, max height, emergence and flowering day of year
 trait.mod <- c("
 data {
     int<lower=0> N; // number of observations
@@ -90,6 +90,14 @@ format.trait <- function(trait,all.data){
     tdata <- tdata[-which(tdata$max.height==0),]
     tdata$focal.trait <- tdata$max.height
   }
+  if(trait=="emerg"){
+    tdata <- all.data[-which(is.na(all.data$emergence)),]
+    tdata$focal.trait <- as.numeric(strftime(tdata$emergence, format = "%V"))
+  }
+  if(trait=="flower"){
+    tdata <- all.data[-which(is.na(all.data$flower)),]
+    tdata$focal.trait <- as.numeric(strftime(tdata$flower, format = "%V"))
+  }
   # set up siteyear random effect & scaled predictors
   tdata$siteyear <- paste0(tdata$year,tdata$site,tdata$shrub)
   tdata$siteyear <- as.numeric(as.factor(tdata$siteyear))
@@ -115,7 +123,6 @@ sladata <- format.trait("SLA",data)
 SLA.fit <- stan(model_code = trait.mod,init=0,data=sladata,iter=12000,warmup=6000)
 summary(SLA.fit,pars=c("beta"))
 plot(SLA.fit,pars=c("beta"))
-
 # save traceplot to show model convergence
 trace.SLA <- traceplot(SLA.fit,pars=c("beta"))
 trace.SLA
@@ -126,7 +133,6 @@ srldata <- format.trait("SRL",data)
 SRL.fit <- stan(model_code = trait.mod,init=0,data=srldata,iter=12000,warmup=6000)
 summary(SRL.fit,pars=c("beta"))
 plot(SRL.fit,pars=c("beta"))
-
 # save traceplot to show model convergence
 trace.SRL <- traceplot(SRL.fit,pars=c("beta"))
 trace.SRL
@@ -137,11 +143,30 @@ maxhdata <- format.trait("max.height",data)
 height.fit <- stan(model_code = trait.mod,init=0,data=maxhdata,iter=12000,warmup=6000)
 summary(height.fit,pars=c("beta"))
 plot(height.fit,pars=c("beta"))
-
 # save traceplot to show model convergence
 trace.height <- traceplot(height.fit,pars=c("beta"))
 trace.height
 ggsave(trace.height,file=paste0(paste0("./../outputs/",Sys.Date(),"/trace_height.jpeg")),height = 6,width = 10)
+
+# fit emergence phenology model 
+edata <- format.trait("emerg",data)
+emerg.fit <- stan(model_code = trait.mod,init=0,data=edata,iter=12000,warmup=6000)
+summary(emerg.fit,pars=c("beta"))
+plot(emerg.fit,pars=c("beta"))
+# save traceplot to show model convergence
+trace.emerg <- traceplot(emerg.fit,pars=c("beta"))
+trace.emerg
+ggsave(trace.emerg,file=paste0(paste0("./../outputs/",Sys.Date(),"/trace_emerg.jpeg")),height = 6,width = 10)
+
+# fit flowering phenology model 
+fdata <- format.trait("flower",data)
+flower.fit <- stan(model_code = trait.mod,init=0,data=fdata,iter=12000,warmup=6000)
+summary(flower.fit,pars=c("beta"))
+plot(flower.fit,pars=c("beta"))
+# save traceplot to show model convergence
+trace.flower <- traceplot(flower.fit,pars=c("beta"))
+trace.flower
+ggsave(trace.flower,file=paste0(paste0("./../outputs/",Sys.Date(),"/trace_flower.jpeg")),height = 6,width = 10)
 
 ## Posterior predictive checks
 
@@ -162,19 +187,13 @@ get.ppc <- function(stanfit,trait,response){
   
   dev.off()
   
-  # plot residuals
-  png(paste0("./../outputs/", Sys.Date(),"/",trait,".resid.png"), width = 8, height = 6, units = "in", res = 300)
-  
-  resid<-extract(stanfit)$res
-  plot(ypred_quant[1,],apply(resid,2,median),xlab="expected value",ylab="residual",pch=19)
-  abline(h=0,lty=2)
-  
-  dev.off()
 }
 
 get.ppc(SLA.fit,"SLA",sladata[["y"]])
 get.ppc(SRL.fit,"SRL",srldata[["y"]])
 get.ppc(height.fit,"height",maxhdata[["y"]])
+get.ppc(emerg.fit,"emerg",edata[["y"]])
+get.ppc(flower.fit,"flower",fdata[["y"]])
 
 
 # save output
@@ -182,4 +201,5 @@ if(!dir.exists(paste0("./../outputs/",Sys.Date(),"/")))dir.create(paste0("./../o
 save(SLA.fit,file=paste0(paste0("./../outputs/",Sys.Date(),"/stan_fits/SLA.fit.rda")))
 save(SRL.fit,file=paste0(paste0("./../outputs/",Sys.Date(),"/stan_fits/SRL.fit.rda")))
 save(height.fit,file=paste0(paste0("./../outputs/",Sys.Date(),"/stan_fits/height.fit.rda")))
-
+save(emerg.fit,file=paste0(paste0("./../outputs/",Sys.Date(),"/stan_fits/emerg.fit.rda")))
+save(flower.fit,file=paste0(paste0("./../outputs/",Sys.Date(),"/stan_fits/flower.fit.rda")))
