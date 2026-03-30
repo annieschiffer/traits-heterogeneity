@@ -17,7 +17,7 @@ bdata.complete$SLA <- as.numeric(bdata.complete$total_leaf_area)/as.numeric(bdat
 bdata.complete$SRL <- as.numeric(bdata.complete$length_cm)/as.numeric(bdata.complete$root_mass)
 bdata.complete <- bdata.complete[-which(bdata.complete$SRL==Inf),]
 
-write.csv(bdata.complete,"./../clean_data/complete_data_biomass.csv",row.names = FALSE)
+#write.csv(bdata.complete,"./../clean_data/complete_data_biomass.csv",row.names = FALSE)
 
 # scaling
 bdata.complete$n.con.nb <- as.numeric(scale(bdata.complete$n.con.nb))
@@ -140,6 +140,34 @@ plot(1:n,bdata.complete$aboveground_mass,xlab="observation number",ylab="data va
 segments(1:n,ypred_quant[2,],1:n,ypred_quant[3,],lty=3,col="firebrick")
 points(1:n,ypred_quant[1,],pch=19,col=alpha("firebrick",.5))
 
+dev.off()
+
+## posterior predictive checks on SD
+row_sds <- apply(ypred, 1, sd, na.rm = TRUE)
+ypred.sd.lower <- quantile(row_sds,0.025) # bounds of 95% credible intervals
+ypred.sd.upper <- quantile(row_sds,0.975)
+true.sd <- sd(bdata.complete$aboveground_mass)
+# plot histogram of standard deviations of MCMC distributions
+png(paste0("./../outputs/", Sys.Date(),"/TbyE.sd.ppc.png"), width = 8, height = 6, units = "in", res = 300)
+hist(row_sds,xlab="Standard deviation of predicted y distributions",main="Posterior predictive checks of standard deviations")
+abline(v=true.sd,col="red",lwd=2) # add true sd straight from data
+abline(v=ypred.sd.lower,col="black",lty=3,lwd=2) # add 95% credible intervals
+abline(v=ypred.sd.upper,col="black",lty=3,lwd=2)
+# within 95% CIs
+dev.off()
+
+## posterior predictive checks on means
+row_means <- apply(ypred,1,mean,na.rm=TRUE)
+ypred.mean.lower <- quantile(row_means,0.025) # bounds of 95% credible intervals
+ypred.mean.upper <- quantile(row_means,0.975)
+true.mean <- mean(bdata.complete$aboveground_mass)
+# plot histogram of standard deviations of MCMC samples at each observation
+png(paste0("./../outputs/", Sys.Date(),"/TbyE.mean.ppc.png"), width = 8, height = 6, units = "in", res = 300)
+hist(row_means,xlab="Means of predicted y distribution",main="Posterior predictive checks of means")
+abline(v=true.mean,col="red",lwd=2) # add true mean straight from data
+abline(v=ypred.mean.lower,col="black",lty=3,lwd=2) # add 95% credible intervals
+abline(v=ypred.mean.upper,col="black",lty=3,lwd=2)
+# within 95% CIs
 dev.off()
 
 # correlation between observed and predicted based on point estimates

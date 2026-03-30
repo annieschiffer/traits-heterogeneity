@@ -184,10 +184,44 @@ get.ppc <- function(stanfit,trait,response){
   plot(1:n,response,xlab="observation number",ylab="data value",pch=19)
   segments(1:n,ypred_quant[2,],1:n,ypred_quant[3,],lty=3,col="firebrick")
   points(1:n,ypred_quant[1,],pch=19,col=alpha("firebrick",.5))
+  dev.off()
   
+  ## posterior predictive checks on SD
+  row_sds <- apply(ypred, 1, sd, na.rm = TRUE)
+  ypred.sd.lower <- quantile(row_sds,0.025) # bounds of 95% credible intervals
+  ypred.sd.upper <- quantile(row_sds,0.975)
+  true.sd <- sd(response)
+  # plot histogram of standard deviations of MCMC distributions
+  png(paste0("./../outputs/", Sys.Date(),"/",trait,".sd.ppc.png"), width = 8, height = 6, units = "in", res = 300)
+  hist(row_sds,xlab="Standard deviation of predicted y distributions",main="Posterior predictive checks of standard deviations")
+  abline(v=true.sd,col="red",lwd=2) # add true sd straight from data
+  abline(v=ypred.sd.lower,col="black",lty=3,lwd=2) # add 95% credible intervals
+  abline(v=ypred.sd.upper,col="black",lty=3,lwd=2)
+  # within 95% CIs
+  dev.off()
+  
+  ## posterior predictive checks on means
+  row_means <- apply(ypred,1,mean,na.rm=TRUE)
+  ypred.mean.lower <- quantile(row_means,0.025) # bounds of 95% credible intervals
+  ypred.mean.upper <- quantile(row_means,0.975)
+  true.mean <- mean(response)
+  # plot histogram of standard deviations of MCMC samples at each observation
+  png(paste0("./../outputs/", Sys.Date(),"/",trait,".mean.ppc.png"), width = 8, height = 6, units = "in", res = 300)
+  hist(row_means,xlab="Means of predicted y distribution",main="Posterior predictive checks of means")
+  abline(v=true.mean,col="red",lwd=2) # add true mean straight from data
+  abline(v=ypred.mean.lower,col="black",lty=3,lwd=2) # add 95% credible intervals
+  abline(v=ypred.mean.upper,col="black",lty=3,lwd=2)
+  # within 95% CIs
   dev.off()
   
 }
+
+# load all models
+load("./../outputs/2026-03-04/stan_fits/SLA.fit.rda")
+load("./../outputs/2026-03-04/stan_fits/SRL.fit.rda")
+load("./../outputs/2026-03-04/stan_fits/height.fit.rda")
+load("./../outputs/2026-03-24/stan_fits/emerg.fit.rda")
+load("./../outputs/2026-03-24/stan_fits/flower.fit.rda")
 
 get.ppc(SLA.fit,"SLA",sladata[["y"]])
 get.ppc(SRL.fit,"SRL",srldata[["y"]])
