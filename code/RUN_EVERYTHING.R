@@ -49,10 +49,6 @@ source("fit_biomass.R")
 
 source("fit_traits.R")
 
-## Aim 3: identify responses to trait x environment
-
-source("fit_trait_env_biomass.R")
-
 #### Make figures ####
 
 source("make_figures.R")

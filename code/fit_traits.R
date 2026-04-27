@@ -10,13 +10,12 @@ data {
     
     vector[N] e; // elevation covariate
     vector[N] p; // patch covariate
-    vector[N] cn; // conspecific neighbor covariate
-    vector[N] hn; // heterospecific neighbor covariate
+    vector[N] t; // competition treatment covariate
 }
 
 parameters {
     vector[Nsiteyear] beta0; // hierarchical intercept
-    vector[8] beta; // coefficients for covariates
+    vector[5] beta; // coefficients for covariates
     real alpha; // prior
     real<lower=0> nu; // prior
     real<lower=0> sigma; // standard deviation for sampling distribution
@@ -27,7 +26,7 @@ transformed parameters {
   vector[N] mu; // storage of means
   
   for(i in 1:N){
-  	  mu[i] = beta0[siteyear[i]] + beta[1]*e[i] + beta[2]*p[i] + beta[3]*cn[i] + beta[4]*hn[i] + beta[5]*e[i]*cn[i] + beta[6]*e[i]*hn[i] + beta[7]*p[i]*cn[i] + beta[8]*p[i]*hn[i];
+  	  mu[i] = beta0[siteyear[i]] + beta[1]*e[i] + beta[2]*p[i] + beta[3]*t[i] + beta[4]*e[i]*t[i] + beta[5]*p[i]*t[i];
   }
 }
 
@@ -101,10 +100,9 @@ format.trait <- function(trait,all.data){
   # set up siteyear random effect & scaled predictors
   tdata$siteyear <- paste0(tdata$year,tdata$site,tdata$shrub)
   tdata$siteyear <- as.numeric(as.factor(tdata$siteyear))
-  tdata$elevation <- as.numeric(as.factor(tdata$elevation))
+  tdata$elevation <- as.numeric(as.factor(tdata$elevation)) 
   tdata$patch <- as.numeric(as.factor(tdata$patch))
-  tdata$n.con.nb <- as.numeric(scale(tdata$n.con.nb))
-  tdata$n.het.nb <- as.numeric(scale(tdata$n.het.nb))
+  tdata$treat <- as.numeric(as.factor(tdata$subplot))
   
   # run model for SLA
   tmod.data <- list(N=dim(tdata)[1],
@@ -113,8 +111,7 @@ format.trait <- function(trait,all.data){
                   y=tdata$focal.trait,
                   e=tdata$elevation,
                   p=tdata$patch,
-                  cn=tdata$n.con.nb,
-                  hn=tdata$n.het.nb)
+                  t=tdata$treat)
   return(tmod.data)
 }
 
@@ -137,6 +134,7 @@ plot(SRL.fit,pars=c("beta"))
 trace.SRL <- traceplot(SRL.fit,pars=c("beta"))
 trace.SRL
 ggsave(trace.SRL,file=paste0(paste0("./../outputs/",Sys.Date(),"/trace_SRL.jpeg")),height = 6,width = 10)
+# when competitors present, 
 
 # fit height model 
 maxhdata <- format.trait("max.height",data)
@@ -217,11 +215,11 @@ get.ppc <- function(stanfit,trait,response){
 }
 
 # load all models
-load("./../outputs/2026-03-04/stan_fits/SLA.fit.rda")
-load("./../outputs/2026-03-04/stan_fits/SRL.fit.rda")
-load("./../outputs/2026-03-04/stan_fits/height.fit.rda")
-load("./../outputs/2026-03-24/stan_fits/emerg.fit.rda")
-load("./../outputs/2026-03-24/stan_fits/flower.fit.rda")
+# load("./../outputs/2026-03-04/stan_fits/SLA.fit.rda")
+# load("./../outputs/2026-03-04/stan_fits/SRL.fit.rda")
+# load("./../outputs/2026-03-04/stan_fits/height.fit.rda")
+# load("./../outputs/2026-03-24/stan_fits/emerg.fit.rda")
+# load("./../outputs/2026-03-24/stan_fits/flower.fit.rda")
 
 get.ppc(SLA.fit,"SLA",sladata[["y"]])
 get.ppc(SRL.fit,"SRL",srldata[["y"]])

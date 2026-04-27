@@ -1,5 +1,13 @@
 ### Fitting models with aboveground biomass as a function of trait x environment
 
+
+# run quick model on pca scores
+bdata.complete$siteyear <- paste0(bdata.complete$year,bdata.complete$site,bdata.complete$shrub)
+bdata.complete$siteyear <- as.numeric(as.factor(bdata.complete$siteyear))
+test <- lmer(log(aboveground_mass) ~ PC1 + PC2 + (1|siteyear),data=bdata.complete)
+summary(test)
+
+
 # import data
 data <- read.csv("./../clean_data/all_data_combined.csv")
 data <- data[data$species=="BRTE",]
@@ -8,6 +16,7 @@ data <- data[data$species=="BRTE",]
 bdata <- data[!is.na(data$aboveground_mass),]
 traits <- bdata[,c("max.height","length_cm","root_mass","total_leaf_area","total_leaf_mass")]
 bdata.complete <- bdata[which(complete.cases(traits)==TRUE),]
+bdata.complete <- bdata.complete[bdata.complete$subplot=="R",]
 
 # calculate SLA
 bdata.complete$total_leaf_area <- bdata.complete$total_leaf_area/100
@@ -20,8 +29,8 @@ bdata.complete <- bdata.complete[-which(bdata.complete$SRL==Inf),]
 #write.csv(bdata.complete,"./../clean_data/complete_data_biomass.csv",row.names = FALSE)
 
 # scaling
-bdata.complete$n.con.nb <- as.numeric(scale(bdata.complete$n.con.nb))
-bdata.complete$n.het.nb <- as.numeric(scale(bdata.complete$n.het.nb))
+# bdata.complete$n.con.nb <- as.numeric(scale(bdata.complete$n.con.nb))
+# bdata.complete$n.het.nb <- as.numeric(scale(bdata.complete$n.het.nb))
 bdata.complete$max.height <- as.numeric(scale(bdata.complete$max.height))
 bdata.complete$SLA <- as.numeric(scale(bdata.complete$SLA))
 bdata.complete$SRL <- as.numeric(scale(bdata.complete$SRL))

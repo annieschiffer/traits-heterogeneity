@@ -4,14 +4,11 @@ predict.emerg <- function(stanfit,emergdata){
 
   # extract the posterior samples for all betas
   post <- extract(stanfit)
-  beta_elev <- post$beta[,1]
+  beta_e <- post$beta[,1]
   beta_p <- post$beta[,2]
-  beta_con <- post$beta[,3]
-  beta_het <- post$beta[,4]
-  beta_elxcon <- post$beta[,5]
-  beta_elxhet <- post$beta[,6]
-  beta_pxcon <- post$beta[,7]
-  beta_pxhet <- post$beta[,8]
+  beta_t <- post$beta[,3]
+  beta_et <- post$beta[,4]
+  beta_pt <- post$beta[,5]
   
   # find the mean and standard deviation of raw data (I scaled data in stan model)
   mean.raw.con <- mean(emergdata$n.con.nb)
@@ -43,7 +40,7 @@ predict.emerg <- function(stanfit,emergdata){
       beta_elxcon[i]*newdata$con.scale*newdata$elevation + beta_elxhet[i]*newdata$het.scale*newdata$elevation+
       beta_pxcon[i]*newdata$con.scale*newdata$patch + beta_pxhet[i]*newdata$het.scale*newdata$patch
 
-    p_mat[i, ] <- eta
+    p_mat[i, ] <- inv_logit(eta)
   }
 
   # extract the median and credible intervals of predictions

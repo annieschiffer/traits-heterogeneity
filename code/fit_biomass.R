@@ -3,18 +3,21 @@
 # import data
 data <- read.csv("./../clean_data/all_data_combined.csv")
 data <- data[data$species=="BRTE",]
+bdata <- data[!is.na(data$aboveground_mass),]
 
 # formatting
-bdata <- data[!is.na(data$aboveground_mass),]
 bdata$siteyear <- paste0(bdata$year,bdata$site,bdata$shrub)
 bdata$siteyear <- as.numeric(as.factor(bdata$siteyear))
-bdata$nb.number <- bdata$n.con.nb + bdata$n.het.nb
 
 bdata$elevation <- as.numeric(as.factor(bdata$elevation))
 bdata$patch <- as.numeric(as.factor(bdata$patch))
+bdata$treat <- as.numeric(as.factor(bdata$subplot))
+
 # scaling
-bdata$n.con.nb <- as.numeric(scale(bdata$n.con.nb))
-bdata$n.het.nb <- as.numeric(scale(bdata$n.het.nb))
+# bdata$nb.number <- bdata$n.con.nb + bdata$n.het.nb
+# bdata$nb.number <- as.numeric(scale(bdata$nb.number))
+# bdata$n.con.nb <- as.numeric(scale(bdata$n.con.nb))
+# bdata$n.het.nb <- as.numeric(scale(bdata$n.het.nb))
 
 # Bayesian model
 
@@ -27,14 +30,12 @@ data {
     
     vector[N] e; // elevation covariate
     vector[N] p; // patch covariate
-    vector[N] cn; // conspecific neighbor covariate
-    vector[N] hn; // heterospecific neighbor covariate
-
+    vector[N] t; // competition treatment covariate
 }
 
 parameters {
     vector[Nsiteyear] beta0; // hierarchical intercept
-    vector[8] beta; // coefficients for covariates
+    vector[5] beta; // coefficients for covariates
     real alpha; // prior
     real<lower=0> nu; // prior
     real<lower=0> sigma; // standard deviation for sampling distribution
@@ -45,7 +46,7 @@ transformed parameters {
   vector[N] mu; // storage of means
   
   for(i in 1:N){
-  	  mu[i] = beta0[siteyear[i]] + beta[1]*e[i] + beta[2]*p[i] + beta[3]*cn[i] + beta[4]*hn[i] + beta[5]*e[i]*cn[i] + beta[6]*e[i]*hn[i] + beta[7]*p[i]*cn[i] + beta[8]*p[i]*hn[i];
+  	  mu[i] = beta0[siteyear[i]] + beta[1]*e[i] + beta[2]*p[i] + beta[3]*t[i] + beta[4]*e[i]*t[i] + beta[5]*p[i]*t[i];
   }
 }
 
@@ -92,8 +93,7 @@ data <- list(N=dim(bdata)[1],
              y=bdata$aboveground_mass,
              e=bdata$elevation,
              p=bdata$patch,
-             cn=bdata$n.con.nb,
-             hn=bdata$n.het.nb)
+             t=bdata$treat)
 
 # run model
 mass.fit <- stan(model_code = mass.mod,init=0,data=data,iter=12000,warmup=6000)
