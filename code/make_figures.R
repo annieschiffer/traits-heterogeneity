@@ -14,7 +14,7 @@ pca_data <- read.csv("./../clean_data/pca_data.csv")
 gdata.sum <- gdata %>% group_by(elevation,patch,subplot) %>% summarize(prop.emerg = sum(germination)/n())
 gdata.sum$elevation <- factor(gdata.sum$elevation,levels=c("low","high"))
 
-ggplot(gdata.sum,aes(x=patch,y=prop.emerg,fill=as.factor(subplot)))+
+fig2 <- ggplot(gdata.sum,aes(x=patch,y=prop.emerg,fill=as.factor(subplot)))+
   facet_grid(~elevation)+
   geom_bar(stat = "identity",position = position_dodge())+
   scale_fill_manual(limits=c("C","R"),labels=c("present","absent"),values = brewer.pal(11,"PuOr")[c(9,4)])+
@@ -26,7 +26,7 @@ ggplot(gdata.sum,aes(x=patch,y=prop.emerg,fill=as.factor(subplot)))+
 
 #### Fig 3: PCA showing trait dispersion -----------------
 
-ggplot() +
+fig3 <- ggplot() +
   geom_point(data=pca_data,aes(x=PC1,y=PC2,color=elevation,shape=patch),alpha=0.7,size=3)+
   theme_minimal()+
   geom_segment(data=loads,aes(x=0,y=0,xend=PC1*4,yend=PC2*4),color="black",
@@ -48,7 +48,7 @@ rtraits <- rtraits[-which(rtraits$root_mass==0),]
 rtraits$SRL <- as.numeric(rtraits$length_cm)/as.numeric(rtraits$root_mass)
 
 rsum <- rtraits[,c("patch","elevation","subplot","SRL")]
-ggplot(rsum,aes(x=patch,y=log(SRL),fill=subplot)) +
+fig4 <- ggplot(rsum,aes(x=patch,y=log(SRL),fill=subplot)) +
   geom_boxplot()+
   scale_fill_manual(limits=c("C","R"),
                     labels=c("present","absent"),
@@ -64,9 +64,9 @@ ggplot(rsum,aes(x=patch,y=log(SRL),fill=subplot)) +
 
 # save output
 if(!dir.exists(paste0("./../outputs/", Sys.Date(),"/"))) dir.create(paste0("./../outputs/", Sys.Date(),"/"))
-ggsave(vital.rates,file = paste0("./../outputs/", Sys.Date(),"/vital_estimates.jpeg"),height = 6,width = 10)
-ggsave(sgh,file = paste0("./../outputs/",Sys.Date(),"/SGH_plot.jpeg"),height = 6,width = 10)
-ggsave(trait.box, file=paste0("./../outputs/",Sys.Date(),"/SRL_boxplot.jpeg"),height=5,width=7)
+ggsave(fig2,file = paste0("./../outputs/2026-04-27/fig2.jpeg"),height = 6,width = 10)
+ggsave(fig3,file = paste0("./../outputs/2026-04-27/fig3.jpeg"),height = 5,width = 7)
+ggsave(fig4, file=paste0("./../outputs/2026-04-27/fig4.jpeg"),height=5,width=7)
 
 ##### Supplemental figures --------------
 

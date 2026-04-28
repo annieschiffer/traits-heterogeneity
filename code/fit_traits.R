@@ -134,7 +134,10 @@ plot(SRL.fit,pars=c("beta"))
 trace.SRL <- traceplot(SRL.fit,pars=c("beta"))
 trace.SRL
 ggsave(trace.SRL,file=paste0(paste0("./../outputs/",Sys.Date(),"/trace_SRL.jpeg")),height = 6,width = 10)
-# when competitors present, 
+# underneath shrubs, neighbors make little difference (shrub increases SRL under competition, but that effect weakens under removal)
+# in open spaces, SRL overall lower, but increases when competitors are removed
+# lowest SRL in competition treatment in open patches (most stressful)
+# 
 
 # fit height model 
 maxhdata <- format.trait("max.height",data)
