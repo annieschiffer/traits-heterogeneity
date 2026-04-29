@@ -35,4 +35,12 @@ write.csv(bdata.complete,"./../clean_data/pca_data.csv",row.names = FALSE)
 # extract loadings
 loads <- as.data.frame(pca$rotation[,1:2])
 
+# testing for differences in dispersion
+elev.disp <- betadisper(dist(bdata.complete[,c("PC1","PC2")]), group = bdata.complete$elevation)
+anova(elev.disp)
+# functional dispersion at low > at high
+
+pat.disp <- betadisper(dist(bdata.complete[,c("PC1","PC2")]), group = bdata.complete$patch)
+anova(pat.disp) # nothing significant
+
 rm(bdata.complete)

@@ -6,11 +6,8 @@ if (!require("rstudioapi")) install.packages("rstudioapi"); library(rstudioapi)
 if (!require("ggplot2")) install.packages("ggplot2"); library(ggplot2)
 if (!require("lubridate")) install.packages("lubridate"); library(lubridate)
 if (!require("stringr")) install.packages("stringr"); library(stringr)
-if (!require("lme4")) install.packages("lme4"); library(lme4)
-if (!require("ggpubr")) install.packages("ggpubr"); library(ggpubr)
 if (!require("RColorBrewer")) install.packages("RColorBrewer"); library(RColorBrewer)
-if (!require("DHARMa")) install.packages("DHARMa"); library(DHARMa)
-if (!require("lqmm")) install.packages("lqmm"); library(lqmm)
+if (!require("vegan")) install.packages("vegan"); library(vegan)
 if (!require("rstan")) install.packages("rstan"); library(rstan)
 if (!require("bayesplot")) install.packages("bayesplot"); library(bayesplot)
 
@@ -48,6 +45,8 @@ source("fit_biomass.R")
 ## Aim 2: analyze trait shifts along gradient
 
 source("fit_traits.R")
+
+source("PCA.R")
 
 #### Make figures ####
 
