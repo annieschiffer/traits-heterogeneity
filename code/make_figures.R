@@ -8,6 +8,20 @@ load("./../outputs/2026-04-27/stan_fits/SRL.fit.rda")
 gdata <- read.csv("./../clean_data/all_data_combined.csv")
 gdata <- gdata[gdata$species=="BRTE",]
 pca_data <- read.csv("./../clean_data/pca_data.csv")
+clim.cov <- read.csv("./../clean_data/fig1_climate_cover.csv")
+SS.clim.data <- read.csv("./../clean_data/fig1_SS_climate.csv")
+
+##### Fig 1: climate variables, SGH proof -----------
+
+fig1 <- ggplot()+
+  geom_point(data=clim.cov,aes(x=MAP,y=MAT.F,size = avg.cover),alpha=0.2)+
+  geom_point(data=SS.clim.data, aes(x=MAP,y=MAT.F,color=elevation),size=4,shape=17)+
+  labs(x="Mean Daily Precipitation (mm)",y="Mean Daily Temperature (F)",color="Site elevation",
+       size="Cheatgrass % cover")+
+  theme_minimal()+
+  scale_color_manual(limits = c("high","low"),values=brewer.pal(11,"PuOr")[c(3,4)])+
+  theme(axis.title = element_text(size=15),legend.title = element_text(size=15),axis.text = element_text(size=12),
+        legend.text=element_text(size=12))
 
 ##### Fig 2: SGH with emergence --------------
 
@@ -64,6 +78,7 @@ fig4 <- ggplot(rsum,aes(x=patch,y=log(SRL),fill=subplot)) +
 
 # save output
 if(!dir.exists(paste0("./../outputs/", Sys.Date(),"/"))) dir.create(paste0("./../outputs/", Sys.Date(),"/"))
+ggsave(fig1,file=paste0("./../outputs/2026-04-27/fig1.jpeg"),height=5,width=7)
 ggsave(fig2,file = paste0("./../outputs/2026-04-27/fig2.jpeg"),height = 6,width = 10)
 ggsave(fig3,file = paste0("./../outputs/2026-04-27/fig3.jpeg"),height = 5,width = 7)
 ggsave(fig4, file=paste0("./../outputs/2026-04-27/fig4.jpeg"),height=5,width=7)

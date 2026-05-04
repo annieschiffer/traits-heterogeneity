@@ -10,6 +10,8 @@ if (!require("RColorBrewer")) install.packages("RColorBrewer"); library(RColorBr
 if (!require("vegan")) install.packages("vegan"); library(vegan)
 if (!require("rstan")) install.packages("rstan"); library(rstan)
 if (!require("bayesplot")) install.packages("bayesplot"); library(bayesplot)
+if (!require("amadeus")) install.packages("amadeus"); library(amadeus)
+if (!require("terra")) install.packages("terra"); library(terra)
 
 # set working directory
 current_path <- getActiveDocumentContext()$path
