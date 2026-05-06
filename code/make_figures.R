@@ -88,10 +88,10 @@ ggsave(fig4, file=paste0("./../outputs/2026-04-27/fig4.jpeg"),height=5,width=7)
 ### Phenology figures
 
 # formatting data
-etraits <- all.data[-which(is.na(all.data$emergence)),]
+etraits <- gdata[-which(is.na(gdata$emergence)),]
 etraits$emergence <- as.numeric(strftime(etraits$emergence, format = "%V"))
 
-ftraits <- all.data[-which(is.na(all.data$flower)),]
+ftraits <- gdata[-which(is.na(gdata$flower)),]
 ftraits$flower <- as.numeric(strftime(ftraits$flower, format = "%V"))
 
 ecount <- etraits %>% group_by(patch,elevation,subplot,emergence) %>% summarize(emerged = n())
@@ -127,10 +127,17 @@ ggsave(eplot,file = paste0("./../outputs/", Sys.Date(),"/supp_phenology.jpeg"),h
 ### Soil conditions across elevation and patches
 
 # calculate moisture differences
-low.sm <- mean(all.data$mean.season.VWC[all.data$elevation=="low"]) 
-high.sm <- mean(all.data$mean.season.VWC[all.data$elevation=="high"])
-open.sm <- mean(all.data$mean.season.VWC[all.data$patch=="open"]) 
-shrub.sm <- mean(all.data$mean.season.VWC[all.data$patch=="shrub"])
+# low.sm <- mean(gdata$mean.season.VWC[gdata$elevation=="low"]) 
+# high.sm <- mean(gdata$mean.season.VWC[gdata$elevation=="high"])
+# open.sm <- mean(gdata$mean.season.VWC[gdata$patch=="open"]) 
+# shrub.sm <- mean(gdata$mean.season.VWC[gdata$patch=="shrub"])
+
+# two way anova on soil moisture differences between patches and elevations
+mean.sm.aov <- aov(mean.season.VWC ~ elevation + patch, data=gdata)
+summary(mean.sm.aov)
+# two way anova on soil temperature differences between patches and elevations
+mean.st.aov <- aov(mean.season.temp ~ elevation + patch, data=gdata)
+summary(mean.st.aov)
 
 # calculate snowmelt date differences
 spring.temps <- soil.temp[(soil.temp$date > "2024-03-01" & soil.temp$date < "2024-04-10") |
@@ -146,17 +153,28 @@ open.date <- mean(snowmelt.dates$snowmelt[snowmelt.dates$patch=="open"])
 shrub.date <- mean(snowmelt.dates$snowmelt[snowmelt.dates$patch=="shrub"])
 
 # formatting soil moisture and temperature data to plot
-moisture.data <- pivot_longer(data=all.data,cols = c("mean.season.VWC","min.season.VWC","max.season.VWC"),names_to = "anomoly",values_to = "percent_VWC")
-temp.data <- pivot_longer(data=all.data,cols = c("mean.season.temp","min.season.temp","max.season.temp"),names_to = "anomoly",values_to = "degrees_C")
+moisture.data <- pivot_longer(data=gdata,cols = c("mean.season.VWC","min.season.VWC","max.season.VWC"),names_to = "anomoly",values_to = "percent_VWC")
+temp.data <- pivot_longer(data=gdata,cols = c("mean.season.temp","min.season.temp","max.season.temp"),names_to = "anomoly",values_to = "degrees_C")
+temp.data$degrees_C <- (temp.data$degrees_C - 32) * (5/9)
 
 # plot soil moisture and temp
 moisture.plot <- ggplot(moisture.data,aes(x=as.factor(elevation),y=percent_VWC,fill=as.factor(patch)))+
   facet_grid(~anomoly,labeller=labeller(anomoly=c("max.season.VWC"="maximum","mean.season.VWC"="mean",
                                                    "min.season.VWC"="minimum")))+
   geom_boxplot()+
-  labs(x="Elevation",y="% VWC",fill="Patch")+
+  labs(x="Elevation",y="Average season soil moisture (% VWC)",fill="Patch")+
   theme_minimal()+
   theme(strip.text = element_text(size=12),axis.title = element_text(size=15),axis.text = element_text(size=12),
         legend.title = element_text(size=15),legend.text=element_text(size=12))
 moisture.plot
+
+temp.plot <- ggplot(temp.data,aes(x=as.factor(elevation),y=degrees_C,fill=as.factor(patch)))+
+  facet_grid(~anomoly,labeller=labeller(anomoly=c("max.season.temp"="maximum","mean.season.temp"="mean",
+                                                  "min.season.temp"="minimum")))+
+  geom_boxplot()+
+  labs(x="Elevation",y=expression("Average season soil temperature (" * degree * "C)"),fill="Patch")+
+  theme_minimal()+
+  theme(strip.text = element_text(size=12),axis.title = element_text(size=15),axis.text = element_text(size=12),
+        legend.title = element_text(size=15),legend.text=element_text(size=12))
+temp.plot
 
