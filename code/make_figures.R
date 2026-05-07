@@ -5,8 +5,14 @@ source("fig_functions.R")
 source("PCA.R")
 load("./../outputs/2026-04-27/stan_fits/germ.fit.rda")
 load("./../outputs/2026-04-27/stan_fits/SRL.fit.rda")
+# whole dataset
 gdata <- read.csv("./../clean_data/all_data_combined.csv")
 gdata <- gdata[gdata$species=="BRTE",]
+# formatting
+gdata$siteyear <- paste0(gdata$year,gdata$site,gdata$shrub)
+gdata$siteyear <- as.numeric(as.factor(gdata$siteyear))
+bdata <- gdata[!is.na(gdata$aboveground_mass),]
+# other datasets
 pca_data <- read.csv("./../clean_data/pca_data.csv")
 clim.cov <- read.csv("./../clean_data/fig1_climate_cover.csv")
 SS.clim.data <- read.csv("./../clean_data/fig1_SS_climate.csv")
@@ -178,3 +184,30 @@ temp.plot <- ggplot(temp.data,aes(x=as.factor(elevation),y=degrees_C,fill=as.fac
         legend.title = element_text(size=15),legend.text=element_text(size=12))
 temp.plot
 
+# testing for intraspecific facilitation
+
+# biomass x proportion cheatgrass
+bdata$prop.cheat <- 0
+for(i in 1:nrow(bdata)){
+  if((bdata$n.con.nb[i]+bdata$n.het.nb[i])==0){bdata$prop.cheat[i]<-0}else{
+    bdata$prop.cheat[i] <- (bdata$n.con.nb[i] / (bdata$n.con.nb[i]+bdata$n.het.nb[i]))
+  }
+}
+# plot
+ggplot(bdata[which(bdata$subplot=="C"),],aes(x=prop.cheat,y=log(aboveground_mass)))+
+  geom_point()+
+  geom_smooth(method="lm")
+# quick lm - not significant
+bdata$prop.cheat <- scale(bdata$prop.cheat)
+mod <- lmer(log(aboveground_mass) ~ prop.cheat + elevation + patch + (1|siteyear),data=bdata)
+summary(mod)
+
+# biomass x cheatgrass abundance
+# plot
+ggplot(bdata[which(bdata$subplot=="C"),],aes(x=n.con.nb,y=log(aboveground_mass)))+
+  geom_point()+
+  geom_smooth(method="lm")
+# quick lm - not significant
+bdata$n.con.nb <- scale(bdata$n.con.nb)
+mod <- lmer(log(aboveground_mass) ~ n.con.nb + elevation + patch + (1|siteyear),data=bdata)
+summary(mod)
