@@ -21,14 +21,14 @@ SS.clim.data <- read.csv("./../clean_data/fig1_SS_climate.csv")
 
 fig1 <- ggplot()+
   geom_point(data=clim.cov,aes(x=MAP,y=MAT.F,size = avg.cover),alpha=0.2)+
-  geom_point(data=SS.clim.data, aes(x=MAP,y=MAT.F,color=elevation),size=4,shape=17)+
-  labs(x="Mean Daily Precipitation (mm)",y="Mean Daily Temperature (F)",color="Site elevation",
-       size="Cheatgrass % cover")+
+  geom_point(data=SS.clim.data, aes(x=MAP,y=MAT.F,fill=elevation),size=6,color="black",shape=23)+
+  labs(x="Mean Daily Precipitation (mm)",y="Mean Daily Temperature (F)",fill="Site\nelevation",
+       size="Cheatgrass\n% cover")+
   theme_minimal()+
-  scale_color_manual(limits = c("high","low"),values=brewer.pal(11,"PuOr")[c(3,4)])+
+  scale_fill_manual(limits = c("high","low"),values=brewer.pal(11,"PuOr")[c(3,4)])+
   theme(axis.title = element_text(size=15),legend.title = element_text(size=15),axis.text = element_text(size=12),
         legend.text=element_text(size=12))
-
+fig1
 
 # load state and province boundaries
 us1 <- gadm(country="USA",level=1)
@@ -106,7 +106,7 @@ fig4 <- ggplot(rsum,aes(x=patch,y=log(SRL),fill=subplot)) +
 
 # save output
 if(!dir.exists(paste0("./../outputs/", Sys.Date(),"/"))) dir.create(paste0("./../outputs/", Sys.Date(),"/"))
-ggsave(fig1,file=paste0("./../outputs/2026-04-27/fig1.jpeg"),height=5,width=7)
+ggsave(fig1,file=paste0("./../outputs/2026-04-27/fig1.jpeg"),height=6,width=7)
 ggsave(fig2,file = paste0("./../outputs/2026-04-27/fig2.jpeg"),height = 6,width = 10)
 ggsave(fig3,file = paste0("./../outputs/2026-04-27/fig3.jpeg"),height = 5,width = 7)
 ggsave(fig4, file=paste0("./../outputs/2026-04-27/fig4.jpeg"),height=5,width=7)
