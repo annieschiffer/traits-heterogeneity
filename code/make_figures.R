@@ -29,6 +29,28 @@ fig1 <- ggplot()+
   theme(axis.title = element_text(size=15),legend.title = element_text(size=15),axis.text = element_text(size=12),
         legend.text=element_text(size=12))
 
+
+# load state and province boundaries
+us1 <- gadm(country="USA",level=1)
+us2 <- gadm(country="USA",level=2)
+us1.sf <- st_as_sf(us1)
+us2.sf <- st_as_sf(us2)
+# get coordinates into correct format
+us1.sf <- st_transform(us1.sf,crs=4326)
+us2.sf <- st_transform(us2.sf,crs=4326)
+
+ggplot()+
+  geom_sf(data = us2.sf, color = "black", fill = NA, size = 0.3)+
+  coord_sf(xlim = c(-112.4, -111.8),ylim = c(44, 44.6))+
+  geom_point(data=SS.clim.data,aes(x=lon,y=lat,shape=as.factor(elevation)),size=2)+
+  theme_minimal()
+ggplot()+
+  geom_sf(data = us1.sf, color = "black", fill = NA, size = 0.5)+
+  geom_sf(data = us2.sf, color = "black", fill = NA, size = 0.1)+
+  coord_sf(xlim = c(-118, -110),ylim = c(41, 49))+
+  theme_minimal()+
+  geom_point(aes(x=-112.222595, y=44.251839),size=6)
+
 ##### Fig 2: SGH with emergence --------------
 
 gdata.sum <- gdata %>% group_by(elevation,patch,subplot) %>% summarize(prop.emerg = sum(germination)/n())

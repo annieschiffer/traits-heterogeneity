@@ -12,6 +12,8 @@ if (!require("rstan")) install.packages("rstan"); library(rstan)
 if (!require("bayesplot")) install.packages("bayesplot"); library(bayesplot)
 if (!require("amadeus")) install.packages("amadeus"); library(amadeus)
 if (!require("terra")) install.packages("terra"); library(terra)
+if (!require("geodata")) install.packages("geodata"); library(geodata)
+if (!require("sf")) install.packages("sf"); library(sf)
 
 # set working directory
 current_path <- getActiveDocumentContext()$path
