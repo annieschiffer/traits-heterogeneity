@@ -155,10 +155,16 @@ ggsave(eplot,file = paste0("./../outputs/", Sys.Date(),"/supp_phenology.jpeg"),h
 ### Soil conditions across elevation and patches
 
 # calculate moisture differences
-# low.sm <- mean(gdata$mean.season.VWC[gdata$elevation=="low"]) 
-# high.sm <- mean(gdata$mean.season.VWC[gdata$elevation=="high"])
-# open.sm <- mean(gdata$mean.season.VWC[gdata$patch=="open"]) 
-# shrub.sm <- mean(gdata$mean.season.VWC[gdata$patch=="shrub"])
+low.sm <- mean(gdata$mean.season.VWC[gdata$elevation=="low"])
+high.sm <- mean(gdata$mean.season.VWC[gdata$elevation=="high"])
+open.sm <- mean(gdata$mean.season.VWC[gdata$patch=="open"])
+shrub.sm <- mean(gdata$mean.season.VWC[gdata$patch=="shrub"])
+
+# calculate temperature differences
+low.st <- mean(gdata$mean.season.temp[gdata$elevation=="low" & !is.na(gdata$mean.season.temp)])
+high.st <- mean(gdata$mean.season.temp[gdata$elevation=="high" & !is.na(gdata$mean.season.temp)])
+open.st <- mean(gdata$mean.season.temp[gdata$patch=="open" & !is.na(gdata$mean.season.temp)])
+shrub.st <- mean(gdata$mean.season.temp[gdata$patch=="shrub" & !is.na(gdata$mean.season.temp)])
 
 # two way anova on soil moisture differences between patches and elevations
 mean.sm.aov <- aov(mean.season.VWC ~ elevation + patch, data=gdata)
