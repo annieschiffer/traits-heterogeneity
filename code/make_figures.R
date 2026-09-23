@@ -191,7 +191,7 @@ moisture.data <- pivot_longer(data=gdata,cols = c("mean.season.VWC","min.season.
 temp.data <- pivot_longer(data=gdata,cols = c("mean.season.temp","min.season.temp","max.season.temp"),names_to = "anomoly",values_to = "degrees_C")
 temp.data$degrees_C <- (temp.data$degrees_C - 32) * (5/9)
 
-# plot soil moisture and temp
+# plot soil moisture
 moisture.plot <- ggplot(moisture.data,aes(x=as.factor(elevation),y=percent_VWC,fill=as.factor(patch)))+
   facet_grid(~anomoly,labeller=labeller(anomoly=c("max.season.VWC"="maximum","mean.season.VWC"="mean",
                                                    "min.season.VWC"="minimum")))+
@@ -202,6 +202,7 @@ moisture.plot <- ggplot(moisture.data,aes(x=as.factor(elevation),y=percent_VWC,f
         legend.title = element_text(size=15),legend.text=element_text(size=12))
 moisture.plot
 
+# plot soil temperature
 temp.plot <- ggplot(temp.data,aes(x=as.factor(elevation),y=degrees_C,fill=as.factor(patch)))+
   facet_grid(~anomoly,labeller=labeller(anomoly=c("max.season.temp"="maximum","mean.season.temp"="mean",
                                                   "min.season.temp"="minimum")))+
@@ -212,30 +213,76 @@ temp.plot <- ggplot(temp.data,aes(x=as.factor(elevation),y=degrees_C,fill=as.fac
         legend.title = element_text(size=15),legend.text=element_text(size=12))
 temp.plot
 
+### Show that GDD and snowmelt timing correlated to MAT
+
+# MAT
+ss.clim <- read.csv("./../clean_data/fig1_SS_climate.csv")
+ss.clim$site <- c("low_gate","low_north","low_east","high_gate","high_north","high_east")
+
+# snowmelt
+snowmelt.dates <- snow.absent %>% group_by(year,site,patch) %>% summarize(snowmelt = min(date))
+snowmelt.dates$snowmelt <- yday(snowmelt.dates$snowmelt)
+snowmelt.compare <- snowmelt.dates[-c(4,11),]
+snowmelt.compare <- snowmelt.compare %>% group_by(site) %>% summarize(avg.snowmelt.date = mean(as.numeric(snowmelt)))
+
+# GDD (from temp data)
+t_base <- 32
+gdd_df <- soil.temp %>%
+  group_by(date,site) %>%
+  # Average 6-hourly temp for the day, subtract base, divide by 4 intervals
+  summarize(daily_gdd = max(0, mean(temp) - t_base))
+
+gdd_df$year <- year(ymd(gdd_df$date))
+gdd_df$month <- month(ymd(gdd_df$date))
+gdd_df <- gdd_df[which(gdd_df$month<8),]
+
+gdd.sum <- gdd_df %>% group_by(site,year) %>% summarize(cum.gdd = sum(daily_gdd))
+gdd.sum <- gdd.sum[-2,]
+gdd.sum <- gdd.sum %>% group_by(site) %>% summarize(mean.cum.gdd = mean(cum.gdd))
+
+# putting it all together
+snow.temp.gdd <- left_join(snowmelt.compare,ss.clim,by=c("site"))
+snow.temp.gdd <- left_join(snow.temp.gdd,gdd.sum,by=c("site"))
+
+cor(snow.temp.gdd$avg.snowmelt.date,snow.temp.gdd$MAT.F)
+cor(snow.temp.gdd$MAT.F,snow.temp.gdd$mean.cum.gdd)
+
+p1 <- ggplot(snow.temp.comp,aes(x=MAT.F,y=avg.snowmelt.date))+
+  geom_point()+
+  geom_smooth(method="lm")+
+  geom_text(x=43.5,y=100,label = "r = -0.96",size=5)+
+  labs(x="MAT (F)",y="Avg. snowmelt day of year")
+p2 <- ggplot(snow.temp.gdd,aes(x=MAT.F,y=mean.cum.gdd))+
+  geom_point()+
+  geom_smooth(method="lm")+
+  geom_text(x=43.5,y=1500,label = "r = 0.84",size=5)+
+  labs(x="MAT (F)",y="Avg. cumulative GDD")
+ggarrange(p1,p2, ncol=1,nrow=2)
+
 # testing for intraspecific facilitation
 
 # biomass x proportion cheatgrass
-bdata$prop.cheat <- 0
-for(i in 1:nrow(bdata)){
-  if((bdata$n.con.nb[i]+bdata$n.het.nb[i])==0){bdata$prop.cheat[i]<-0}else{
-    bdata$prop.cheat[i] <- (bdata$n.con.nb[i] / (bdata$n.con.nb[i]+bdata$n.het.nb[i]))
-  }
-}
-# plot
-ggplot(bdata[which(bdata$subplot=="C"),],aes(x=prop.cheat,y=log(aboveground_mass)))+
-  geom_point()+
-  geom_smooth(method="lm")
-# quick lm - not significant
-bdata$prop.cheat <- scale(bdata$prop.cheat)
-mod <- lmer(log(aboveground_mass) ~ prop.cheat + elevation + patch + (1|siteyear),data=bdata)
-summary(mod)
-
-# biomass x cheatgrass abundance
-# plot
-ggplot(bdata[which(bdata$subplot=="C"),],aes(x=n.con.nb,y=log(aboveground_mass)))+
-  geom_point()+
-  geom_smooth(method="lm")
-# quick lm - not significant
-bdata$n.con.nb <- scale(bdata$n.con.nb)
-mod <- lmer(log(aboveground_mass) ~ n.con.nb + elevation + patch + (1|siteyear),data=bdata)
-summary(mod)
+# bdata$prop.cheat <- 0
+# for(i in 1:nrow(bdata)){
+#   if((bdata$n.con.nb[i]+bdata$n.het.nb[i])==0){bdata$prop.cheat[i]<-0}else{
+#     bdata$prop.cheat[i] <- (bdata$n.con.nb[i] / (bdata$n.con.nb[i]+bdata$n.het.nb[i]))
+#   }
+# }
+# # plot
+# ggplot(bdata[which(bdata$subplot=="C"),],aes(x=prop.cheat,y=log(aboveground_mass)))+
+#   geom_point()+
+#   geom_smooth(method="lm")
+# # quick lm - not significant
+# bdata$prop.cheat <- scale(bdata$prop.cheat)
+# mod <- lmer(log(aboveground_mass) ~ prop.cheat + elevation + patch + (1|siteyear),data=bdata)
+# summary(mod)
+# 
+# # biomass x cheatgrass abundance
+# # plot
+# ggplot(bdata[which(bdata$subplot=="C"),],aes(x=n.con.nb,y=log(aboveground_mass)))+
+#   geom_point()+
+#   geom_smooth(method="lm")
+# # quick lm - not significant
+# bdata$n.con.nb <- scale(bdata$n.con.nb)
+# mod <- lmer(log(aboveground_mass) ~ n.con.nb + elevation + patch + (1|siteyear),data=bdata)
+# summary(mod)

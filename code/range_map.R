@@ -27,6 +27,7 @@ getClimateData <- function(Year,Variable,VariableAbb,coord){
   # get precip data for the coordinates
   Coordinates <- vect(coord,geom=c("longitude.x","latitude.x"),crs="EPSG:4326")
   values <- extract(rast.data,Coordinates)
+  #browser()
   # calculate annual mean precip and total annual precip
   out_data <- values %>%
     rowwise() %>%
@@ -47,10 +48,9 @@ getClimateData <- function(Year,Variable,VariableAbb,coord){
 years <- c(2002:2004,2006:2016)
 all.clim <- list()
 for(i in 1:length(years)){
-  precip <- getClimateData(years[i],"Precipitation","pr",coord)
   mintemp <- getClimateData(years[i],"Minimum Near-Surface Air Temperature","tmmn",coord)
   maxtemp <- getClimateData(years[i],"Maximum Near-Surface Air Temperature","tmmx",coord)
-  #browser()
+  precip <- getClimateData(years[i],"Precipitation","pr",coord)
   clim.comb <- rbind(precip,mintemp,maxtemp)
   all.clim[[i]] <- pivot_wider(clim.comb,names_from = variable,values_from = annual_mean)
 }

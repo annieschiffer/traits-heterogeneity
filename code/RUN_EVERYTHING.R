@@ -8,12 +8,13 @@ if (!require("lubridate")) install.packages("lubridate"); library(lubridate)
 if (!require("stringr")) install.packages("stringr"); library(stringr)
 if (!require("RColorBrewer")) install.packages("RColorBrewer"); library(RColorBrewer)
 if (!require("vegan")) install.packages("vegan"); library(vegan)
-if (!require("rstan")) install.packages("rstan"); library(rstan)
 if (!require("bayesplot")) install.packages("bayesplot"); library(bayesplot)
 if (!require("amadeus")) install.packages("amadeus"); library(amadeus)
 if (!require("terra")) install.packages("terra"); library(terra)
 if (!require("geodata")) install.packages("geodata"); library(geodata)
 if (!require("sf")) install.packages("sf"); library(sf)
+if (!require("rstan")) install.packages("rstan"); library(rstan)
+if (!require("ggpubr")) install.packages("ggpubr"); library(ggpubr)
 
 # set working directory
 current_path <- getActiveDocumentContext()$path

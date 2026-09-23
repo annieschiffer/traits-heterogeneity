@@ -35,7 +35,7 @@ data {
 
 parameters {
     vector[Nsiteyear] beta0; // hierarchical intercept
-    vector[5] beta; // coefficients for covariates
+    vector[6] beta; // coefficients for covariates
     real alpha; // prior
     real<lower=0> nu; // prior
     real<lower=0> sigma; // standard deviation for sampling distribution
@@ -46,7 +46,7 @@ transformed parameters {
   vector[N] mu; // storage of means
   
   for(i in 1:N){
-  	  mu[i] = beta0[siteyear[i]] + beta[1]*e[i] + beta[2]*p[i] + beta[3]*t[i] + beta[4]*e[i]*t[i] + beta[5]*p[i]*t[i];
+  	  mu[i] = beta0[siteyear[i]] + beta[1]*e[i] + beta[2]*p[i] + beta[3]*t[i] + beta[4]*e[i]*t[i] + beta[5]*p[i]*t[i] + beta[6]*p[i]*e[i];
   }
 }
 
@@ -100,7 +100,18 @@ mass.fit <- stan(model_code = mass.mod,init=0,data=data,iter=12000,warmup=6000)
 
 # look at output
 summary(mass.fit,pars=c("beta"))
-plot(mass.fit,pars=c("beta"))
+plot(mass.fit,pars=c("beta")) + scale_y_discrete(limits = c("beta[6]",
+                                                            "beta[5]",
+                                                            "beta[4]",
+                                                            "beta[3]",
+                                                            "beta[2]",
+                                                            "beta[1]"),
+                                                 labels = c("low x shrub",
+                                                            "shrub x removal",
+                                                            "low x removal",
+                                                            "removal",
+                                                            "shrub",
+                                                            "low"))
 
 # save traceplot to show model convergence
 trace.mass <- traceplot(mass.fit,pars=c("beta"))
@@ -165,14 +176,13 @@ abline(h=0,lty=2)
 
 dev.off()
 
-t <- lmer(log(aboveground_mass) ~ elevation*n.con.nb + patch*n.con.nb + elevation*n.het.nb +
-               patch*n.het.nb + (1|siteyear), data=bdata)
-t <- lmer(log(aboveground_mass) ~ elevation*n.het.nb +
-               patch*n.het.nb + (1|siteyear), data=bdata)
-res <- resid(t)
-plot(bdata$n.con.nb,res)
+# t <- lmer(log(aboveground_mass) ~ elevation*n.con.nb + patch*n.con.nb + elevation*n.het.nb +
+#                patch*n.het.nb + (1|siteyear), data=bdata)
+# t <- lmer(log(aboveground_mass) ~ elevation*n.het.nb +
+#                patch*n.het.nb + (1|siteyear), data=bdata)
+# res <- resid(t)
+# plot(bdata$n.con.nb,res)
 
 # save output
-if(!dir.exists(paste0("./../outputs/",Sys.Date(),"/")))dir.create(paste0("./../outputs/",Sys.Date(),"/stan_fits/"))
 save(mass.fit,file=paste0(paste0("./../outputs/",Sys.Date(),"/stan_fits/mass.fit.rda")))
 

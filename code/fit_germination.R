@@ -34,7 +34,7 @@ data {
 
 parameters {
     vector[Nsiteyear] beta0; // hierarchical intercept
-    vector[5] beta; // coefficients for covariates
+    vector[6] beta; // coefficients for covariates
     real mu; // prior
     real<lower=0> sigma; // prior
 }    
@@ -44,7 +44,7 @@ transformed parameters {
   vector[N] prob; // storage of probabilities
   
   for(i in 1:N){
-  	  prob[i] = beta0[siteyear[i]] + beta[1]*e[i] + beta[2]*p[i] + beta[3]*t[i] + beta[4]*e[i]*t[i] + beta[5]*p[i]*t[i];
+  	  prob[i] = beta0[siteyear[i]] + beta[1]*e[i] + beta[2]*p[i] + beta[3]*t[i] + beta[4]*e[i]*t[i] + beta[5]*p[i]*t[i] + beta[6]*p[i]*e[i];
   }
 }
 
@@ -93,11 +93,22 @@ data <- list(N=dim(gdata)[1],
              t=gdata$treat)
 
 # run model
-germ.fit <- stan(model_code = germ.mod,init=0,data=data, iter=12000, warmup=6000)
+germ.fit <- stan(model_code = germ.mod,init=0,data=data,iter=12000,warmup=6000)
 
 # look at output
 summary(germ.fit,pars=c("beta"))
-plot(germ.fit,pars=c("beta"))
+plot(germ.fit,pars=c("beta")) + scale_y_discrete(limits = c("beta[6]",
+                                                            "beta[5]",
+                                                            "beta[4]",
+                                                            "beta[3]",
+                                                            "beta[2]",
+                                                            "beta[1]"),
+                                                 labels = c("low x shrub",
+                                                            "shrub x removal",
+                                                            "low x removal",
+                                                            "removal",
+                                                            "shrub",
+                                                            "low"))
 
 # save traceplot to show model convergence
 trace.germ <- traceplot(germ.fit,pars=c("beta"))
