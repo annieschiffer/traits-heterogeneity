@@ -3,8 +3,6 @@
 #### load data and custom functions
 source("fig_functions.R")
 source("PCA.R")
-load("./../outputs/2026-04-27/stan_fits/germ.fit.rda")
-load("./../outputs/2026-04-27/stan_fits/SRL.fit.rda")
 # whole dataset
 gdata <- read.csv("./../clean_data/all_data_combined.csv")
 gdata <- gdata[gdata$species=="BRTE",]
@@ -64,21 +62,21 @@ fig2 <- ggplot(gdata.sum,aes(x=patch,y=prop.emerg,fill=as.factor(subplot)))+
   labs(y="Proportion established",fill="Competition",)+
   theme(axis.title.x = element_blank(),axis.title.y = element_text(size=15),axis.text.x = element_text(size=15),axis.text.y = element_text(size=12),
         legend.title = element_text(size=15),legend.text = element_text(size=12),strip.text = element_text(size=15))
-
+fig2
 
 #### Fig 3: PCA showing trait dispersion -----------------
 
 fig3 <- ggplot() +
-  geom_point(data=pca_data,aes(x=PC1,y=PC2,color=elevation,shape=patch),alpha=0.7,size=3)+
+  geom_point(data=pca_data,aes(x=PC1,y=PC2,color=elevation),alpha=0.7,size=3)+
   theme_minimal()+
   geom_segment(data=loads,aes(x=0,y=0,xend=PC1*4,yend=PC2*4),color="black",
                arrow = arrow(length=unit(0.2,"cm")))+
-  geom_text(data=loads,aes(x=PC1*4.2,y=PC2*4.5,label=c("SLA","SRL","height")),color="black",size=5)+
+  geom_text(data=loads,aes(x=PC1*4.4,y=PC2*4.5,label=c("SLA","SRL","height")),color="black",size=5)+
   scale_shape_manual(values=c(2,19))+
   scale_color_manual(values=brewer.pal(11,"PuOr")[c(3,10)])+
-  labs(color="Elevation",shape="Patch")+
+  labs(color="Elevation")+
   theme(legend.title = element_text(size=15),legend.text = element_text(size=12),axis.title=element_text(size=15))
-
+fig3
 
 ##### Fig 4: SRL across environments ----------------
 
@@ -103,13 +101,14 @@ fig4 <- ggplot(rsum,aes(x=patch,y=log(SRL),fill=subplot)) +
   annotate("text",label="short,\nthick roots",x=-0.1,y=8.5,size=5,color="#2D004B",fontface="bold")+
   coord_cartesian(clip="off",xlim=c(0.95,NA))+
   theme(plot.margin = margin(l=70))
+fig4
 
 # save output
 if(!dir.exists(paste0("./../outputs/", Sys.Date(),"/"))) dir.create(paste0("./../outputs/", Sys.Date(),"/"))
-ggsave(fig1,file=paste0("./../outputs/2026-04-27/fig1.jpeg"),height=6,width=7)
-ggsave(fig2,file = paste0("./../outputs/2026-04-27/fig2.jpeg"),height = 6,width = 10)
-ggsave(fig3,file = paste0("./../outputs/2026-04-27/fig3.jpeg"),height = 5,width = 7)
-ggsave(fig4, file=paste0("./../outputs/2026-04-27/fig4.jpeg"),height=5,width=7)
+ggsave(fig1,file=paste0("./../outputs/", Sys.Date(),"/fig1.jpeg"),height=6,width=7)
+ggsave(fig2,file = paste0("./../outputs/", Sys.Date(),"/fig2.jpeg"),height = 6,width = 10)
+ggsave(fig3,file = paste0("./../outputs/", Sys.Date(),"/fig3.jpeg"),height = 5,width = 7)
+ggsave(fig4, file=paste0("./../outputs/", Sys.Date(),"/fig4.jpeg"),height=5,width=7)
 
 ##### Supplemental figures --------------
 

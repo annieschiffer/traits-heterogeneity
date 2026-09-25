@@ -15,7 +15,7 @@ data {
 
 parameters {
     vector[Nsiteyear] beta0; // hierarchical intercept
-    vector[5] beta; // coefficients for covariates
+    vector[6] beta; // coefficients for covariates
     real alpha; // prior
     real<lower=0> nu; // prior
     real<lower=0> sigma; // standard deviation for sampling distribution
@@ -26,7 +26,7 @@ transformed parameters {
   vector[N] mu; // storage of means
   
   for(i in 1:N){
-  	  mu[i] = beta0[siteyear[i]] + beta[1]*e[i] + beta[2]*p[i] + beta[3]*t[i] + beta[4]*e[i]*t[i] + beta[5]*p[i]*t[i];
+  	  mu[i] = beta0[siteyear[i]] + beta[1]*e[i] + beta[2]*p[i] + beta[3]*t[i] + beta[4]*e[i]*t[i] + beta[5]*p[i]*t[i] + beta[6]*p[i]*e[i];
   }
 }
 
@@ -119,7 +119,19 @@ format.trait <- function(trait,all.data){
 sladata <- format.trait("SLA",data)
 SLA.fit <- stan(model_code = trait.mod,init=0,data=sladata,iter=12000,warmup=6000)
 summary(SLA.fit,pars=c("beta"))
-plot(SLA.fit,pars=c("beta"))
+plot(SLA.fit,pars=c("beta")) + scale_y_discrete(limits = c("beta[6]",
+                                                            "beta[5]",
+                                                            "beta[4]",
+                                                            "beta[3]",
+                                                            "beta[2]",
+                                                            "beta[1]"),
+                                                 labels = c("low x shrub",
+                                                            "shrub x removal",
+                                                            "low x removal",
+                                                            "removal",
+                                                            "shrub",
+                                                            "low"))
+
 # save traceplot to show model convergence
 trace.SLA <- traceplot(SLA.fit,pars=c("beta"))
 trace.SLA
@@ -129,7 +141,19 @@ ggsave(trace.SLA,file=paste0(paste0("./../outputs/",Sys.Date(),"/trace_SLA.jpeg"
 srldata <- format.trait("SRL",data)
 SRL.fit <- stan(model_code = trait.mod,init=0,data=srldata,iter=12000,warmup=6000)
 summary(SRL.fit,pars=c("beta"))
-plot(SRL.fit,pars=c("beta"))
+plot(SRL.fit,pars=c("beta")) + scale_y_discrete(limits = c("beta[6]",
+                                                            "beta[5]",
+                                                            "beta[4]",
+                                                            "beta[3]",
+                                                            "beta[2]",
+                                                            "beta[1]"),
+                                                 labels = c("low x shrub",
+                                                            "shrub x removal",
+                                                            "low x removal",
+                                                            "removal",
+                                                            "shrub",
+                                                            "low"))
+
 # save traceplot to show model convergence
 trace.SRL <- traceplot(SRL.fit,pars=c("beta"))
 trace.SRL
@@ -143,7 +167,19 @@ ggsave(trace.SRL,file=paste0(paste0("./../outputs/",Sys.Date(),"/trace_SRL.jpeg"
 maxhdata <- format.trait("max.height",data)
 height.fit <- stan(model_code = trait.mod,init=0,data=maxhdata,iter=12000,warmup=6000)
 summary(height.fit,pars=c("beta"))
-plot(height.fit,pars=c("beta"))
+plot(height.fit,pars=c("beta")) + scale_y_discrete(limits = c("beta[6]",
+                                                            "beta[5]",
+                                                            "beta[4]",
+                                                            "beta[3]",
+                                                            "beta[2]",
+                                                            "beta[1]"),
+                                                 labels = c("low x shrub",
+                                                            "shrub x removal",
+                                                            "low x removal",
+                                                            "removal",
+                                                            "shrub",
+                                                            "low"))
+
 # save traceplot to show model convergence
 trace.height <- traceplot(height.fit,pars=c("beta"))
 trace.height
@@ -153,7 +189,19 @@ ggsave(trace.height,file=paste0(paste0("./../outputs/",Sys.Date(),"/trace_height
 edata <- format.trait("emerg",data)
 emerg.fit <- stan(model_code = trait.mod,init=0,data=edata,iter=12000,warmup=6000)
 summary(emerg.fit,pars=c("beta"))
-plot(emerg.fit,pars=c("beta"))
+plot(emerg.fit,pars=c("beta")) + scale_y_discrete(limits = c("beta[6]",
+                                                            "beta[5]",
+                                                            "beta[4]",
+                                                            "beta[3]",
+                                                            "beta[2]",
+                                                            "beta[1]"),
+                                                 labels = c("low x shrub",
+                                                            "shrub x removal",
+                                                            "low x removal",
+                                                            "removal",
+                                                            "shrub",
+                                                            "low"))
+
 # save traceplot to show model convergence
 trace.emerg <- traceplot(emerg.fit,pars=c("beta"))
 trace.emerg
@@ -163,7 +211,19 @@ ggsave(trace.emerg,file=paste0(paste0("./../outputs/",Sys.Date(),"/trace_emerg.j
 fdata <- format.trait("flower",data)
 flower.fit <- stan(model_code = trait.mod,init=0,data=fdata,iter=12000,warmup=6000)
 summary(flower.fit,pars=c("beta"))
-plot(flower.fit,pars=c("beta"))
+plot(flower.fit,pars=c("beta")) + scale_y_discrete(limits = c("beta[6]",
+                                                            "beta[5]",
+                                                            "beta[4]",
+                                                            "beta[3]",
+                                                            "beta[2]",
+                                                            "beta[1]"),
+                                                 labels = c("low x shrub",
+                                                            "shrub x removal",
+                                                            "low x removal",
+                                                            "removal",
+                                                            "shrub",
+                                                            "low"))
+
 # save traceplot to show model convergence
 trace.flower <- traceplot(flower.fit,pars=c("beta"))
 trace.flower

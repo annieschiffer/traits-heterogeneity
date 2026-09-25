@@ -7,7 +7,7 @@ data <- data[data$species=="BRTE",]
 bdata <- data[!is.na(data$aboveground_mass),]
 traits <- bdata[,c("max.height","length_cm","root_mass","total_leaf_area","total_leaf_mass")]
 bdata.complete <- bdata[which(complete.cases(traits)==TRUE),]
-bdata.complete <- bdata.complete[bdata.complete$subplot=="R",]
+#bdata.complete <- bdata.complete[bdata.complete$subplot=="R",]
 
 # calculate SLA
 bdata.complete$total_leaf_area <- bdata.complete$total_leaf_area/100
@@ -40,7 +40,7 @@ elev.disp <- betadisper(dist(bdata.complete[,c("PC1","PC2")]), group = bdata.com
 anova(elev.disp)
 # functional dispersion at low > at high
 
-pat.disp <- betadisper(dist(bdata.complete[,c("PC1","PC2")]), group = bdata.complete$patch)
-anova(pat.disp) # nothing significant
+# pat.disp <- betadisper(dist(bdata.complete[,c("PC1","PC2")]), group = bdata.complete$patch)
+# anova(pat.disp) # nothing significant
 
 rm(bdata.complete)
