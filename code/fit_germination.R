@@ -12,12 +12,6 @@ gdata$elevation <- as.numeric(as.factor(gdata$elevation))
 gdata$patch <- as.numeric(as.factor(gdata$patch))
 gdata$treat <- as.numeric(as.factor(gdata$subplot))
 
-# scaling
-# gdata$nb.number <- gdata$n.con.nb + gdata$n.het.nb
-# gdata$nb.number <- as.numeric(scale(gdata$nb.number))
-# gdata$n.con.nb <- as.numeric(scale(gdata$n.con.nb))
-# gdata$n.het.nb <- as.numeric(scale(gdata$n.het.nb))
-
 # Bayesian model
 
 germ.mod <- c("
@@ -172,11 +166,6 @@ plot(ypred_quant[1,],apply(resid,2,median),xlab="expected value",ylab="residual"
 abline(h=0,lty=2)
 
 dev.off()
-# 
-# t <- glmmTMB(germination ~ elevation*n.con.nb + patch*n.con.nb + elevation*n.het.nb +
-#                patch*n.het.nb + (1|siteyear), data=gdata, family = binomial(link="logit"))
-# t <- glmmTMB(germination ~ elevation*n.het.nb +
-#                patch*n.het.nb + (1|siteyear), data=gdata, family = binomial(link="logit"))
 
 # save output
 save(germ.fit,file=paste0(paste0("./../outputs/",Sys.Date(),"/stan_fits/germ.fit.rda")))

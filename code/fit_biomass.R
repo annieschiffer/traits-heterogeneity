@@ -13,12 +13,6 @@ bdata$elevation <- as.numeric(as.factor(bdata$elevation))
 bdata$patch <- as.numeric(as.factor(bdata$patch))
 bdata$treat <- as.numeric(as.factor(bdata$subplot))
 
-# scaling
-# bdata$nb.number <- bdata$n.con.nb + bdata$n.het.nb
-# bdata$nb.number <- as.numeric(scale(bdata$nb.number))
-# bdata$n.con.nb <- as.numeric(scale(bdata$n.con.nb))
-# bdata$n.het.nb <- as.numeric(scale(bdata$n.het.nb))
-
 # Bayesian model
 
 mass.mod <- c("
@@ -176,13 +170,5 @@ abline(h=0,lty=2)
 
 dev.off()
 
-# t <- lmer(log(aboveground_mass) ~ elevation*n.con.nb + patch*n.con.nb + elevation*n.het.nb +
-#                patch*n.het.nb + (1|siteyear), data=bdata)
-# t <- lmer(log(aboveground_mass) ~ elevation*n.het.nb +
-#                patch*n.het.nb + (1|siteyear), data=bdata)
-# res <- resid(t)
-# plot(bdata$n.con.nb,res)
-
 # save output
 save(mass.fit,file=paste0(paste0("./../outputs/",Sys.Date(),"/stan_fits/mass.fit.rda")))
-

@@ -158,10 +158,6 @@ plot(SRL.fit,pars=c("beta")) + scale_y_discrete(limits = c("beta[6]",
 trace.SRL <- traceplot(SRL.fit,pars=c("beta"))
 trace.SRL
 ggsave(trace.SRL,file=paste0(paste0("./../outputs/",Sys.Date(),"/trace_SRL.jpeg")),height = 6,width = 10)
-# underneath shrubs, neighbors make little difference (shrub increases SRL under competition, but that effect weakens under removal)
-# in open spaces, SRL overall lower, but increases when competitors are removed
-# lowest SRL in competition treatment in open patches (most stressful)
-# 
 
 # fit height model 
 maxhdata <- format.trait("max.height",data)
@@ -276,13 +272,6 @@ get.ppc <- function(stanfit,trait,response){
   dev.off()
   
 }
-
-# load all models
-# load("./../outputs/2026-03-04/stan_fits/SLA.fit.rda")
-# load("./../outputs/2026-03-04/stan_fits/SRL.fit.rda")
-# load("./../outputs/2026-03-04/stan_fits/height.fit.rda")
-# load("./../outputs/2026-03-24/stan_fits/emerg.fit.rda")
-# load("./../outputs/2026-03-24/stan_fits/flower.fit.rda")
 
 get.ppc(SLA.fit,"SLA",sladata[["y"]])
 get.ppc(SRL.fit,"SRL",srldata[["y"]])

@@ -26,7 +26,7 @@ getClimateData <- function(Year,Variable,VariableAbb,coord){
   rast.data <- rast(paste0("./../raw_data/",VariableAbb,"/",VariableAbb,"_",Year,".nc"))
   # get precip data for the coordinates
   Coordinates <- vect(coord,geom=c("longitude.x","latitude.x"),crs="EPSG:4326")
-  values <- extract(rast.data,Coordinates)
+  values <- terra::extract(rast.data,Coordinates)
   #browser()
   # calculate annual mean precip and total annual precip
   out_data <- values %>%
