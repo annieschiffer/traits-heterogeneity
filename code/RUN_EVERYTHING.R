@@ -1,3 +1,4 @@
+### Run all scripts and analyses
 
 # load packages
 if (!require("tidyr")) install.packages("tidyr"); library(tidyr)
@@ -36,7 +37,6 @@ source("clean_neighbor_data.R")
 
 source("clean_germinate_data.R")
 
-# merging to get clean data frame
 source("merge_data.R")
 
 #### Data analysis ####
@@ -54,6 +54,8 @@ source("fit_traits.R")
 source("PCA.R")
 
 #### Make figures ####
+
+source("range_map.R")
 
 source("make_figures.R")
 
